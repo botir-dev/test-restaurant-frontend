@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderApi } from "@/lib/services";
 import { useAuthStore } from "@/store/auth.store";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_COLORS,
@@ -50,7 +51,32 @@ export default function OrdersPage() {
       orderApi.getAll(
         statusFilter !== "all" ? { status: statusFilter } : undefined,
       ),
-    refetchInterval: 10000,
+  });
+
+  // WebSocket — real vaqtda yangilash
+  useWebSocket({
+    handlers: {
+      new_order: (data) => {
+        qc.invalidateQueries({ queryKey: ["orders"] });
+      },
+      order_ready: (data) => {
+        qc.invalidateQueries({ queryKey: ["orders"] });
+        toast.success(`Buyurtma tayyor! ${data?.table_id ? "" : ""}`, {
+          icon: "✅",
+          duration: 5000,
+        });
+      },
+      qr_order: (data) => {
+        qc.invalidateQueries({ queryKey: ["orders"] });
+        toast.success(
+          `QR buyurtma keldi: ${data?.items_count || ""} ta mahsulot`,
+          {
+            icon: "📱",
+            duration: 5000,
+          },
+        );
+      },
+    },
   });
 
   const allOrders: Order[] = data?.data?.data || [];
