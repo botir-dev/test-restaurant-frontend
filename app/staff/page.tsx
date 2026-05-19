@@ -742,17 +742,6 @@ export default function StaffPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => staffApi.delete(id),
     onSuccess: (_, deletedId) => {
-      // Cache ni yangilash — o'chirilgan hodimni darhol ro'yxatdan olib tashlash
-      qc.setQueryData(["staff"], (old: any) => {
-        if (!old?.data?.data) return old;
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            data: old.data.data.filter((s: any) => s.id !== deletedId),
-          },
-        };
-      });
       qc.invalidateQueries({ queryKey: ["staff"] });
       toast.success("Hodim o'chirildi");
     },

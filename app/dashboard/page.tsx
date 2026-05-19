@@ -161,34 +161,36 @@ export default function DashboardPage() {
         </p>
 
         {/* Soat grafigi */}
-        <div className="flex items-end gap-1 h-24 mb-2">
+        <div className="relative flex items-end gap-1 mb-2 h-24">
           {BUSINESS_HOURS.map((h) => {
             const weight = hourWeights[h] || 0;
-            const heightPct = Math.round((weight / maxWeight) * 100);
+            const heightPct = Math.max(
+              Math.round((weight / maxWeight) * 100),
+              4,
+            );
             const orders = Math.round(totalMonthlyOrders * weight);
-            const pct = totalMonthlyOrders > 0 ? Math.round(weight * 100) : 0;
+            const pct = Math.round(weight * 100);
+            const isEmpty = totalMonthlyOrders === 0;
+            const fakeH = [20, 30, 55, 70, 45, 25, 30, 50, 75, 85, 65, 35, 10];
+            const idx = BUSINESS_HOURS.indexOf(h);
             return (
               <div
                 key={h}
-                className="flex-1 flex flex-col items-center gap-1 group relative"
+                className="flex-1 flex flex-col justify-end group relative"
+                style={{ height: "100%" }}
               >
                 <div
-                  className="w-full bg-blue-400 hover:bg-blue-500 rounded-t-sm transition-all cursor-pointer"
-                  style={{ height: `${heightPct}%`, minHeight: "4px" }}
+                  className={`w-full rounded-t-sm transition-all ${isEmpty ? "bg-blue-100 animate-pulse" : "bg-blue-400 hover:bg-blue-500 cursor-pointer"}`}
+                  style={{ height: `${isEmpty ? fakeH[idx] : heightPct}%` }}
                 />
-                <div className="absolute bottom-full mb-1 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-10">
-                  {h}:00 — {pct}% ({orders} buyurtma)
-                </div>
+                {!isEmpty && (
+                  <div className="absolute bottom-full mb-1 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-10 left-1/2 -translate-x-1/2">
+                    {h}:00 — {pct}% ({orders} ta)
+                  </div>
+                )}
               </div>
             );
           })}
-        </div>
-        <div className="flex justify-between text-xs text-gray-400 px-0.5">
-          {BUSINESS_HOURS.map((h) => (
-            <span key={h} className="flex-1 text-center">
-              {h}
-            </span>
-          ))}
         </div>
 
         {/* Vaqt bo'yicha top mahsulotlar */}
@@ -284,30 +286,89 @@ export default function DashboardPage() {
       {revenueChart.length > 0 && (
         <div className="card">
           <h2 className="section-title mb-4">Oxirgi 30 kunlik daromad</h2>
-          <div className="flex items-end gap-1 h-32">
-            {(() => {
-              const max = Math.max(
-                ...revenueChart.map((r: any) => Number(r.revenue)),
-              );
-              return revenueChart.map((r: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center gap-1 group relative"
-                >
-                  <div
-                    className="w-full bg-green-500 rounded-t-sm hover:bg-green-600 transition-all cursor-pointer"
-                    style={{
-                      height: `${max > 0 ? (Number(r.revenue) / max) * 100 : 0}%`,
-                      minHeight: "2px",
-                    }}
-                  />
-                  <div className="absolute bottom-full mb-1 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-10">
-                    {formatPrice(r.revenue)}
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
+          {revenueChart.length > 0 ? (
+            <>
+              <div className="relative flex items-end gap-0.5 h-32">
+                {(() => {
+                  const max = Math.max(
+                    ...revenueChart.map((r: any) => Number(r.revenue)),
+                    1,
+                  );
+                  return revenueChart.map((r: any, i: number) => {
+                    const heightPct = Math.max(
+                      (Number(r.revenue) / max) * 100,
+                      3,
+                    );
+                    const dateStr =
+                      typeof r.date === "string"
+                        ? r.date.slice(5, 10)
+                        : new Date(r.date).toLocaleDateString("uz", {
+                            month: "2-digit",
+                            day: "2-digit",
+                          });
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 flex flex-col justify-end group relative"
+                        style={{ height: "100%" }}
+                      >
+                        <div
+                          className="w-full bg-green-500 hover:bg-green-600 rounded-t-sm transition-all cursor-pointer"
+                          style={{ height: `${heightPct}%` }}
+                        />
+                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-10">
+                          {dateStr} — {formatPrice(r.revenue)}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+              <div className="flex justify-between text-xs text-gray-400 px-0.5 mt-1">
+                {[
+                  0,
+                  Math.floor(revenueChart.length / 2),
+                  revenueChart.length - 1,
+                ].map((i) => {
+                  const r = revenueChart[i];
+                  const d =
+                    typeof r?.date === "string"
+                      ? r.date.slice(5, 10)
+                      : new Date(r?.date).toLocaleDateString("uz", {
+                          month: "2-digit",
+                          day: "2-digit",
+                        });
+                  return <span key={i}>{d}</span>;
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="relative flex items-end gap-0.5 h-32">
+                {Array.from({ length: 30 }).map((_, i) => {
+                  const fakeH = [
+                    12, 18, 8, 22, 15, 30, 25, 10, 35, 28, 14, 40, 32, 20, 45,
+                    38, 16, 42, 33, 22, 50, 44, 18, 55, 48, 24, 38, 30, 20, 42,
+                  ];
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 flex flex-col justify-end"
+                      style={{ height: "100%" }}
+                    >
+                      <div
+                        className="w-full bg-gray-100 rounded-t-sm"
+                        style={{ height: `${fakeH[i] || 10}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-400 text-center mt-2">
+                Ma'lumot yo'q
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>
