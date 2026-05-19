@@ -1,6 +1,6 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { orderApi, customRoleApi, customProductTypeApi } from "@/lib/services";
+import { orderApi } from "@/lib/services";
 import { useAuthStore } from "@/store/auth.store";
 import type { Order, OrderItem } from "@/types";
 import { ROLE_PRODUCT_MAP, formatDate } from "@/lib/utils";
@@ -12,14 +12,6 @@ export default function KitchenPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
 
-  // Custom rolni DB dan olib, uning product_type_key sini bilamiz
-  const { data: customRolesData } = useQuery({
-    queryKey: ["custom-roles"],
-    queryFn: () => customRoleApi.getAll(),
-    enabled: !!user,
-  });
-  const customRoles = customRolesData?.data?.data || [];
-
   // Hodimning ruxsat etilgan turlarini hisoblash
   const getAllowedTypes = (): string[] => {
     if (!user) return [];
@@ -30,14 +22,6 @@ export default function KitchenPage() {
     // Standart rol
     const stdType = (ROLE_PRODUCT_MAP as Record<string, string>)[user.role];
     if (stdType) types.add(stdType);
-
-    // Custom rol — product_type_key ni topamiz
-    if (!stdType) {
-      const customRole = (customRoles as any[]).find(
-        (r) => r.key === user.role,
-      );
-      if (customRole?.product_type_key) types.add(customRole.product_type_key);
-    }
 
     return Array.from(types);
   };

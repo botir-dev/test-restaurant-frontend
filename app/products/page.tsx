@@ -1,11 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  productApi,
-  customProductTypeApi,
-  customRoleApi,
-} from "@/lib/services";
+import { productApi, customProductTypeApi } from "@/lib/services";
 import {
   PRODUCT_TYPE_LABELS,
   ROLE_PRODUCT_MAP,
@@ -380,20 +376,14 @@ export default function ProductsPage() {
   const [showTypeManager, setShowTypeManager] = useState(false);
   const [page, setPage] = useState(1);
 
-  // Custom turlarni olish
+  // Custom turlarni olish (faqat manager/storekeeper uchun)
   const { data: customTypesData } = useQuery({
     queryKey: ["custom-product-types"],
     queryFn: () => customProductTypeApi.getAll(),
+    enabled: user?.role === "manager" || user?.role === "storekeeper",
   });
-  const customTypes = (customTypesData?.data?.data || []) as any[];
 
-  // Custom rollarni olish (user roli custom bo'lsa product_type_key topish uchun)
-  const { data: customRolesData } = useQuery({
-    queryKey: ["custom-roles"],
-    queryFn: () => customRoleApi.getAll(),
-    enabled: !!user,
-  });
-  const customRoles = (customRolesData?.data?.data || []) as any[];
+  const customTypes = (customTypesData?.data?.data || []) as any[];
 
   // Foydalanuvchining ruxsat etilgan turlarini hisoblash
   const NON_PREPARER = [
@@ -408,12 +398,8 @@ export default function ProductsPage() {
   const userAllowedTypes: string[] = (() => {
     if (!user || !isPreparerUser) return [];
     const types = new Set<string>(user.extra_permissions || []);
-    // Standart rol mapping
     const stdType = (ROLE_PRODUCT_MAP as Record<string, string>)[user.role];
     if (stdType) types.add(stdType);
-    // Custom rol -> product_type_key
-    const customRole = customRoles.find((r) => r.key === user.role);
-    if (customRole?.product_type_key) types.add(customRole.product_type_key);
     return Array.from(types);
   })();
 
