@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tableApi, orderApi } from "@/lib/services";
 import { useAuthStore } from "@/store/auth.store";
-import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   formatPrice,
   ORDER_STATUS_LABELS,
@@ -678,7 +677,6 @@ function ReservationsPanel({ onClose }: { onClose: () => void }) {
 // ─── MAIN PAGE ───────────────────────────────────────────
 export default function TablesPage() {
   const { user } = useAuthStore();
-  const qc = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
   const [showReservations, setShowReservations] = useState(false);
   const [showNewReservation, setShowNewReservation] = useState(false);
@@ -687,27 +685,6 @@ export default function TablesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["tables"],
     queryFn: () => tableApi.getAll(),
-  });
-
-  // WebSocket — stol holati real vaqtda yangilanadi
-  useWebSocket({
-    handlers: {
-      new_order: () => {
-        qc.invalidateQueries({ queryKey: ["tables"] });
-        qc.invalidateQueries({ queryKey: ["orders"] });
-      },
-      order_ready: () => {
-        qc.invalidateQueries({ queryKey: ["tables"] });
-        qc.invalidateQueries({ queryKey: ["orders"] });
-      },
-      qr_order: (data) => {
-        qc.invalidateQueries({ queryKey: ["tables"] });
-        qc.invalidateQueries({ queryKey: ["orders"] });
-        toast.success(`QR buyurtma: ${data?.items_count || ""} ta mahsulot`, {
-          icon: "📱",
-        });
-      },
-    },
   });
 
   const tables: Table[] = data?.data?.data || [];

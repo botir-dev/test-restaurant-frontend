@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderApi, paymentApi } from "@/lib/services";
-import { useWebSocket } from "@/hooks/useWebSocket";
 import { formatPrice, formatDate } from "@/lib/utils";
 import type { Order, PaymentType } from "@/types";
 import toast from "react-hot-toast";
@@ -12,6 +11,7 @@ import {
   QrCode,
   Loader2,
   CheckCircle,
+  Printer,
   X,
 } from "lucide-react";
 import clsx from "clsx";
@@ -58,6 +58,7 @@ function PaymentModal({
     onSuccess: async () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
       toast.success("To'lov qabul qilindi!");
+      // Chekni print qilish
       try {
         const checkRes = await paymentApi.getCheck(order.id);
         const blob = new Blob([checkRes.data], { type: "text/plain" });
@@ -85,9 +86,10 @@ function PaymentModal({
         </div>
 
         <div className="p-5 space-y-4">
+          {/* Order summary */}
           <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
             <div className="flex justify-between text-sm text-gray-500">
-              <span>{(order as any).table_number}-stol</span>
+              <span>{order.table_number}-stol</span>
               <span>{order.guest_count} mehmon</span>
             </div>
             {order.items.map((item, i) => (
@@ -108,6 +110,7 @@ function PaymentModal({
             </div>
           </div>
 
+          {/* Payment type */}
           <div>
             <p className="label">To'lov turi</p>
             <div className="grid grid-cols-3 gap-2">
@@ -149,24 +152,10 @@ function PaymentModal({
 
 export default function CashierPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["orders", "payment_pending"],
     queryFn: () => orderApi.getAll({ status: "payment_pending" }),
-  });
-
-  // WebSocket — kassaga kelgan buyurtmalar real vaqtda
-  useWebSocket({
-    handlers: {
-      order_ready: (data) => {
-        qc.invalidateQueries({ queryKey: ["orders"] });
-      },
-      // payment_pending statusiga o'tganda yangilash
-      new_order: () => {
-        qc.invalidateQueries({ queryKey: ["orders"] });
-      },
-    },
   });
 
   const orders: Order[] = data?.data?.data || [];
@@ -212,7 +201,7 @@ export default function CashierPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-bold text-gray-900 text-lg">
-                      {(order as any).table_number}-stol
+                      {order.table_number}-stol
                     </p>
                     <p className="text-xs text-gray-400">
                       {formatDate(order.created_at)}

@@ -2,7 +2,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orderApi } from "@/lib/services";
 import { useAuthStore } from "@/store/auth.store";
-import { useWebSocket } from "@/hooks/useWebSocket";
 import type { Order, OrderItem } from "@/types";
 import { ROLE_PRODUCT_MAP, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -16,10 +15,11 @@ export default function KitchenPage() {
   // Hodimning ruxsat etilgan turlarini hisoblash
   const getAllowedTypes = (): string[] => {
     if (!user) return [];
-    if (user.role === "manager") return [];
+    if (user.role === "manager") return []; // manager hammani ko'radi alohida logika bilan
 
     const types = new Set<string>(user.extra_permissions || []);
 
+    // Standart rol
     const stdType = (ROLE_PRODUCT_MAP as Record<string, string>)[user.role];
     if (stdType) types.add(stdType);
 
@@ -44,22 +44,6 @@ export default function KitchenPage() {
     },
   });
 
-  // WebSocket — real vaqtda yangilash
-  useWebSocket({
-    handlers: {
-      new_order: (data) => {
-        qc.invalidateQueries({ queryKey: ["orders"] });
-        toast.success(`Yangi buyurtma: ${data?.message || "keldi"}`, {
-          icon: "🍽️",
-          duration: 4000,
-        });
-      },
-      order_ready: () => {
-        qc.invalidateQueries({ queryKey: ["orders"] });
-      },
-    },
-  });
-
   const prepareMutation = useMutation({
     mutationFn: ({ orderId, itemId }: { orderId: string; itemId: string }) =>
       orderApi.prepareItem(orderId, itemId),
@@ -76,7 +60,7 @@ export default function KitchenPage() {
   const getMyItems = (order: Order): OrderItem[] => {
     if (!user) return [];
     if (user.role === "manager") return order.items;
-    if (allowedTypes.length === 0) return order.items;
+    if (allowedTypes.length === 0) return order.items; // hech qanday tur yo'q — hammasi ko'rinsin
     return order.items.filter((item) => allowedTypes.includes(item.type));
   };
 
