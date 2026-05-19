@@ -1,26 +1,36 @@
-'use client';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth.store';
-import Sidebar from '@/components/layout/Sidebar';
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/auth.store";
+import Sidebar from "@/components/layout/Sidebar";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (!isAuthenticated) router.replace('/login');
-  }, [isAuthenticated, router]);
+    if (!_hasHydrated) return; // hydration tugaguncha kutamiz
+    if (!isAuthenticated) router.replace("/login");
+  }, [isAuthenticated, _hasHydrated, router]);
 
-  if (!isAuthenticated) return null;
+  // hydration tugamagan yoki authenticated emas — spinner ko'rsat
+  if (!_hasHydrated || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafaf8]">
+        <div className="w-8 h-8 border-[3px] border-green-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#fafaf8]">
       <Sidebar />
       <main className="flex-1 lg:ml-56 pt-14 lg:pt-0 min-w-0">
-        <div className="p-4 lg:p-6 max-w-6xl mx-auto">
-          {children}
-        </div>
+        <div className="p-4 lg:p-6 max-w-6xl mx-auto">{children}</div>
       </main>
     </div>
   );
