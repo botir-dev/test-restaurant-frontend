@@ -22,6 +22,8 @@ import {
   ChevronRight,
   Building2,
   Archive,
+  Settings,
+  Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
@@ -92,6 +94,18 @@ const navItems = [
     label: "Boshqaruv",
     icon: Building2,
     roles: ["super_admin"],
+  },
+  {
+    href: "/settings",
+    label: "Sozlamalar",
+    icon: Settings,
+    roles: ["manager"],
+  },
+  {
+    href: "/earnings",
+    label: "Mening maoshim",
+    icon: Wallet,
+    roles: ["waiter"],
   },
 ];
 

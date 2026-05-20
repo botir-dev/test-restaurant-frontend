@@ -11,10 +11,11 @@ import {
   QrCode,
   Loader2,
   CheckCircle,
-  Printer,
   X,
+  Percent,
 } from "lucide-react";
 import clsx from "clsx";
+import api from "@/lib/api";
 
 const PAYMENT_TYPES: {
   key: PaymentType;
@@ -51,14 +52,25 @@ function PaymentModal({
 }) {
   const qc = useQueryClient();
   const [paymentType, setPaymentType] = useState<PaymentType>("cash");
-  const total = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
+
+  const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
+
+  // Filial xizmat haqi sozlamasini olish
+  const { data: settingsData } = useQuery({
+    queryKey: ["branch-settings"],
+    queryFn: () => api.get("/branches/me/settings"),
+    staleTime: 60000,
+  });
+  const serviceFeePercent =
+    parseFloat(settingsData?.data?.data?.service_fee_percent) || 0;
+  const serviceFeeAmount = Math.round((subtotal * serviceFeePercent) / 100);
+  const grandTotal = subtotal + serviceFeeAmount;
 
   const payMutation = useMutation({
     mutationFn: () => paymentApi.process(order.id, paymentType),
-    onSuccess: async () => {
+    onSuccess: async (res) => {
       qc.invalidateQueries({ queryKey: ["orders"] });
       toast.success("To'lov qabul qilindi!");
-      // Chekni print qilish
       try {
         const checkRes = await paymentApi.getCheck(order.id);
         const blob = new Blob([checkRes.data], { type: "text/plain" });
@@ -86,10 +98,10 @@ function PaymentModal({
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Order summary */}
+          {/* Buyurtma xulosasi */}
           <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
             <div className="flex justify-between text-sm text-gray-500">
-              <span>{order.table_number}-stol</span>
+              <span>{(order as any).table_number}-stol</span>
               <span>{order.guest_count} mehmon</span>
             </div>
             {order.items.map((item, i) => (
@@ -102,15 +114,35 @@ function PaymentModal({
                 </span>
               </div>
             ))}
-            <div className="pt-2 border-t border-gray-200 flex justify-between">
-              <span className="font-bold text-gray-900">JAMI:</span>
-              <span className="font-bold text-green-600 text-lg">
-                {formatPrice(total)}
-              </span>
+
+            <div className="pt-2 border-t border-gray-200 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Mahsulotlar:</span>
+                <span className="text-gray-800">{formatPrice(subtotal)}</span>
+              </div>
+
+              {serviceFeePercent > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-1 text-amber-700">
+                    <Percent className="w-3.5 h-3.5" />
+                    Xizmat haqi ({serviceFeePercent}%):
+                  </span>
+                  <span className="text-amber-700 font-medium">
+                    {formatPrice(serviceFeeAmount)}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between pt-1 border-t border-gray-200">
+                <span className="font-bold text-gray-900">JAMI TO'LOV:</span>
+                <span className="font-bold text-green-600 text-lg">
+                  {formatPrice(grandTotal)}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Payment type */}
+          {/* To'lov turi */}
           <div>
             <p className="label">To'lov turi</p>
             <div className="grid grid-cols-3 gap-2">
@@ -121,7 +153,7 @@ function PaymentModal({
                   className={clsx(
                     "flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all font-semibold text-sm",
                     paymentType === pt.key
-                      ? pt.color + " border-2"
+                      ? pt.color
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
                   )}
                 >
@@ -142,7 +174,7 @@ function PaymentModal({
             ) : (
               <CheckCircle className="w-5 h-5" />
             )}
-            To'lovni tasdiqlash
+            {formatPrice(grandTotal)} — Tasdiqlash
           </button>
         </div>
       </div>
@@ -158,6 +190,15 @@ export default function CashierPage() {
     queryFn: () => orderApi.getAll({ status: "payment_pending" }),
   });
 
+  // Xizmat haqi % ni oldindan yuklash (ko'rsatish uchun)
+  const { data: settingsData } = useQuery({
+    queryKey: ["branch-settings"],
+    queryFn: () => api.get("/branches/me/settings"),
+    staleTime: 60000,
+  });
+  const serviceFeePercent =
+    parseFloat(settingsData?.data?.data?.service_fee_percent) || 0;
+
   const orders: Order[] = data?.data?.data || [];
 
   return (
@@ -170,6 +211,11 @@ export default function CashierPage() {
           <h1 className="page-title">Kassa</h1>
           <p className="text-sm text-gray-500">
             {orders.length} ta to'lov kutilmoqda
+            {serviceFeePercent > 0 && (
+              <span className="ml-2 text-amber-600 font-semibold">
+                · Xizmat haqi: {serviceFeePercent}%
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -188,10 +234,12 @@ export default function CashierPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {orders.map((order) => {
-            const total = order.items.reduce(
+            const subtotal = order.items.reduce(
               (s, i) => s + i.price * i.quantity,
               0,
             );
+            const feeAmt = Math.round((subtotal * serviceFeePercent) / 100);
+            const grand = subtotal + feeAmt;
             return (
               <div
                 key={order.id}
@@ -201,7 +249,7 @@ export default function CashierPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-bold text-gray-900 text-lg">
-                      {order.table_number}-stol
+                      {(order as any).table_number}-stol
                     </p>
                     <p className="text-xs text-gray-400">
                       {formatDate(order.created_at)}
@@ -211,6 +259,7 @@ export default function CashierPage() {
                     To'lov kutilmoqda
                   </span>
                 </div>
+
                 <div className="space-y-1 mb-3">
                   {order.items.map((item, i) => (
                     <div key={i} className="flex justify-between text-sm">
@@ -223,15 +272,27 @@ export default function CashierPage() {
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                  <span className="text-sm text-gray-500">
-                    {order.guest_count} mehmon
-                  </span>
-                  <span className="font-bold text-green-600 text-lg">
-                    {formatPrice(total)}
-                  </span>
+
+                <div className="space-y-1 pt-2 border-t border-gray-100 mb-3">
+                  <div className="flex items-center justify-between text-sm text-gray-500">
+                    <span>{order.guest_count} mehmon</span>
+                    <span>Mahsulotlar: {formatPrice(subtotal)}</span>
+                  </div>
+                  {serviceFeePercent > 0 && (
+                    <div className="flex justify-between text-sm text-amber-600">
+                      <span>Xizmat haqi ({serviceFeePercent}%)</span>
+                      <span>+ {formatPrice(feeAmt)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold">
+                    <span className="text-gray-900">JAMI:</span>
+                    <span className="text-green-600 text-lg">
+                      {formatPrice(grand)}
+                    </span>
+                  </div>
                 </div>
-                <button className="btn-primary w-full justify-center mt-3 py-2 text-sm">
+
+                <button className="btn-primary w-full justify-center py-2 text-sm">
                   <CreditCard className="w-4 h-4" /> Hisobni yopish
                 </button>
               </div>

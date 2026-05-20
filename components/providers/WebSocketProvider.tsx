@@ -4,10 +4,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
 
-/**
- * WebSocketProvider — butun dastur uchun BITTA WS ulanishi
- * Sidebar ichiga joylangan: login -> ulandi, logout -> uzildi
- */
+// Web Speech API orqali xabarni o'qib berish
+const speak = (text: string) => {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  // Avvalgi ovozni to'xtatish
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "uz-UZ";
+  utter.rate = 0.95;
+  utter.pitch = 1;
+  utter.volume = 1;
+  window.speechSynthesis.speak(utter);
+};
+
 export default function WebSocketProvider() {
   const { isAuthenticated } = useAuthStore();
   const qc = useQueryClient();
@@ -18,10 +27,6 @@ export default function WebSocketProvider() {
   const isDestroyedRef = useRef(false);
   const MAX_RECONNECT = 15;
 
-  /**
-   * http(s):// -> ws(s)://
-   * NEXT_PUBLIC_API_URL yo'q bo'lsa — joriy origin ishlatiladi
-   */
   const buildWsUrl = useCallback((token: string): string => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
     if (apiUrl) {
@@ -49,29 +54,16 @@ export default function WebSocketProvider() {
     }
   }, []);
 
-  // connect useRef bilan saqlash — scheduleReconnect ichida circular dep oldini olish uchun
   const connectRef = useRef<() => void>(() => {});
 
   const scheduleReconnect = useCallback(() => {
     if (isDestroyedRef.current) return;
-    if (reconnectCountRef.current >= MAX_RECONNECT) {
-      console.warn("WS: Maksimal urinish tugadi");
-      return;
-    }
+    if (reconnectCountRef.current >= MAX_RECONNECT) return;
     const delay = Math.min(
       2000 * Math.pow(1.5, reconnectCountRef.current),
       30000,
     );
     reconnectCountRef.current += 1;
-    console.log(
-      "WS: " +
-        Math.round(delay / 1000) +
-        "s da qayta uriniladi (" +
-        reconnectCountRef.current +
-        "/" +
-        MAX_RECONNECT +
-        ")",
-    );
     reconnectTimerRef.current = setTimeout(() => connectRef.current(), delay);
   }, []);
 
@@ -79,7 +71,6 @@ export default function WebSocketProvider() {
     if (typeof window === "undefined") return;
     if (isDestroyedRef.current) return;
 
-    // Avvalgi ulanishni yopish
     if (wsRef.current) {
       clearInterval((wsRef.current as any)._pingInterval);
       try {
@@ -94,8 +85,7 @@ export default function WebSocketProvider() {
     let ws: WebSocket;
     try {
       ws = new WebSocket(buildWsUrl(token));
-    } catch (err) {
-      console.error("WS: WebSocket yaratishda xato:", err);
+    } catch {
       scheduleReconnect();
       return;
     }
@@ -116,8 +106,7 @@ export default function WebSocketProvider() {
 
     ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data as string);
-        const { type, data } = msg;
+        const { type, data } = JSON.parse(event.data as string);
 
         switch (type) {
           case "pong":
@@ -128,32 +117,40 @@ export default function WebSocketProvider() {
           case "new_order":
             qc.invalidateQueries({ queryKey: ["orders"] });
             qc.invalidateQueries({ queryKey: ["tables"] });
-            if (data?.message) {
-              toast.success(data.message, { icon: "🍽️", duration: 4000 });
+            {
+              const msg = data?.message || "Yangi buyurtma keldi";
+              toast.success(msg, { icon: "🍽️", duration: 4000 });
+              speak(msg);
             }
             break;
 
           case "qr_order":
             qc.invalidateQueries({ queryKey: ["orders"] });
             qc.invalidateQueries({ queryKey: ["tables"] });
-            toast.success(
-              "📱 QR buyurtma: " + (data?.items_count ?? "") + " ta mahsulot",
-              { duration: 5000 },
-            );
+            {
+              const msg =
+                "QR buyurtma keldi, " +
+                (data?.items_count ?? "") +
+                " ta mahsulot";
+              toast.success(msg, { icon: "📱", duration: 5000 });
+              speak(msg);
+            }
             break;
 
           case "order_ready":
             qc.invalidateQueries({ queryKey: ["orders"] });
             qc.invalidateQueries({ queryKey: ["tables"] });
-            toast.success("✅ Buyurtma tayyor!", { duration: 6000 });
+            {
+              const msg = "Buyurtma tayyor! Stolga olib boring.";
+              toast.success(msg, { icon: "✅", duration: 6000 });
+              speak(msg);
+            }
             break;
 
           default:
-            console.log("WS: noma'lum event:", type, data);
+            break;
         }
-      } catch (err) {
-        console.error("WS: Xabar parse xatosi:", err);
-      }
+      } catch (_) {}
     };
 
     ws.onclose = (event) => {
@@ -163,27 +160,21 @@ export default function WebSocketProvider() {
       scheduleReconnect();
     };
 
-    ws.onerror = () => {
-      // Browser xavfsizlik sababli onerror da ma'lumot bo'lmaydi.
-      // Haqiqiy xato onclose da keladi — shu yerda log qilmaymiz.
-    };
+    ws.onerror = () => {};
   }, [buildWsUrl, qc, scheduleReconnect]);
 
-  // connectRef ni yangilab turish
   useEffect(() => {
     connectRef.current = connect;
   }, [connect]);
 
   useEffect(() => {
     isDestroyedRef.current = false;
-
     if (isAuthenticated) {
       reconnectCountRef.current = 0;
       connect();
     } else {
       disconnect();
     }
-
     return () => {
       isDestroyedRef.current = true;
       disconnect();
