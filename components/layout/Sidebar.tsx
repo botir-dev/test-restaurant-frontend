@@ -27,7 +27,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
-import WebSocketProvider from "@/components/providers/WebSocketProvider";
+import WebSocketProvider, {
+  SoundSettingsButton,
+} from "@/components/providers/WebSocketProvider";
 
 const navItems = [
   {
@@ -201,6 +203,7 @@ export default function Sidebar() {
         })}
       </nav>
 
+      <SoundSettingsButton />
       <div className="p-3 border-t border-gray-100">
         <button
           onClick={handleLogout}
