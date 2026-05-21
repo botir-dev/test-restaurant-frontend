@@ -11,7 +11,7 @@ declare const QRCode: any;
 
 function QRCodeBox({ table, branchId }: { table: Table; branchId: string }) {
   const qrRef = useRef<HTMLDivElement>(null);
-  const publicUrl = `${table.table_number}`;
+  const publicUrl = `https://restaurant.botirdev.uz/menu?branch=${branchId}&table=${table.id}`;
 
   useEffect(() => {
     if (!qrRef.current) return;
