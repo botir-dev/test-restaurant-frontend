@@ -4,144 +4,170 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
 
-// ─── TOVUSH SOZLAMASI ─────────────────────────────────────
-// localStorage dan o'qiladi: 'speech' | 'notification'
-const getSoundPref = (): "speech" | "notification" =>
-  typeof window !== "undefined"
-    ? (localStorage.getItem("notify_sound") as any) || "notification"
-    : "notification";
+// ─── AudioContext unlock (iOS/Android uchun) ──────────────
+// Foydalanuvchi birinchi tap/click qilganda AudioContext ochiladi
+let audioCtxUnlocked = false;
+const unlockAudio = () => {
+  if (audioCtxUnlocked) return;
+  audioCtxUnlocked = true;
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    setTimeout(() => ctx.close(), 200);
+  } catch (_) {}
+};
 
-// ─── WEB SPEECH API ───────────────────────────────────────
+// ─── NOTIFICATION SOUND (AudioContext) ───────────────────
+// Ikkita beep — telefon bildirishnoma tovushiga o'xshash
+const playSound = () => {
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+
+    const beep = (freq: number, start: number, duration: number, vol = 0.5) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(vol, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+      osc.start(start);
+      osc.stop(start + duration);
+    };
+
+    const t = ctx.currentTime;
+    // 1-chi signal
+    beep(880, t + 0.0, 0.15);
+    beep(660, t + 0.18, 0.15);
+    // 2-chi signal (0.5s keyin)
+    beep(880, t + 0.5, 0.15);
+    beep(660, t + 0.68, 0.15);
+
+    setTimeout(() => {
+      try {
+        ctx.close();
+      } catch (_) {}
+    }, 1500);
+  } catch (_) {}
+};
+
+// ─── SPEECH ───────────────────────────────────────────────
 const speak = (text: string) => {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  // Tizimda mavjud eng yaxshi ovoz
-  const voices = window.speechSynthesis.getVoices();
-  const preferred =
-    voices.find((v) => v.lang.startsWith("uz")) ||
-    voices.find((v) => v.lang.startsWith("ru")) ||
-    voices[0];
-  if (preferred) utter.voice = preferred;
-  utter.rate = 0.9;
-  utter.pitch = 1;
-  utter.volume = 1;
-  window.speechSynthesis.speak(utter);
-};
 
-// ─── WEB NOTIFICATION API (telefon default tovushi) ───────
-const requestNotificationPermission = async (): Promise<boolean> => {
-  if (typeof window === "undefined" || !("Notification" in window))
-    return false;
-  if (Notification.permission === "granted") return true;
-  if (Notification.permission === "denied") return false;
-  const result = await Notification.requestPermission();
-  return result === "granted";
-};
+  const doSpeak = () => {
+    const utter = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    const v =
+      voices.find((v) => v.lang.startsWith("ru")) ||
+      voices.find((v) => v.default) ||
+      voices[0];
+    if (v) utter.voice = v;
+    utter.rate = 0.88;
+    utter.pitch = 1;
+    utter.volume = 1;
+    window.speechSynthesis.speak(utter);
+  };
 
-const showNativeNotification = (title: string, body: string) => {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  // Brauzer o'zi telefon default bildirishnoma tovushini chiqaradi
-  const n = new Notification(title, {
-    body,
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
-    // silent: false — default: telefon tovushi chiqadi
-  });
-  // 6 soniyadan keyin avtomatik yopiladi
-  setTimeout(() => n.close(), 6000);
-};
-
-// ─── VIBRATSIYA ────────────────────────────────────────────
-const vibrate = (pattern: number[]) => {
-  if (typeof navigator !== "undefined" && navigator.vibrate) {
-    navigator.vibrate(pattern);
+  // Voices hali yuklanmagan bo'lishi mumkin
+  if (window.speechSynthesis.getVoices().length > 0) {
+    doSpeak();
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      doSpeak();
+    };
   }
 };
 
-// ─── ASOSIY NOTIFY FUNKSIYA ────────────────────────────────
+// ─── VIBRATSIYA ───────────────────────────────────────────
+const vibrate = () => {
+  try {
+    navigator.vibrate?.([200, 100, 200, 100, 400]);
+  } catch (_) {}
+};
+
+// ─── SOZLAMA ──────────────────────────────────────────────
+const getPref = (): "sound" | "speech" =>
+  typeof window !== "undefined"
+    ? (localStorage.getItem("notify_pref") as any) || "sound"
+    : "sound";
+
+// ─── NOTIFY ───────────────────────────────────────────────
 const notify = (msg: string, icon: string, duration: number) => {
-  const pref = getSoundPref();
-
-  // Toast har doim chiqadi
   toast.success(msg, { icon, duration });
-
-  // Vibratsiya: qisqa-qisqa-uzun
-  vibrate([200, 100, 200, 100, 400]);
-
+  vibrate();
+  const pref = getPref();
   if (pref === "speech") {
-    // Xabarni ovozda o'qib berish
     speak(msg);
   } else {
-    // Telefon default bildirishnoma tovushi
-    showNativeNotification("Restoran tizimi", msg);
+    playSound();
   }
 };
 
-// ─── TOVUSH TANLASH MODAL ──────────────────────────────────
+// ─── SOUND SETTINGS BUTTON (Sidebar uchun) ────────────────
 export function SoundSettingsButton() {
-  const [pref, setPref] = useState<"speech" | "notification">(getSoundPref);
-  const [permDenied, setPermDenied] = useState(false);
+  const [pref, setPref] = useState<"sound" | "speech">("sound");
 
-  const handleChange = async (val: "speech" | "notification") => {
-    if (val === "notification") {
-      const granted = await requestNotificationPermission();
-      if (!granted) {
-        setPermDenied(true);
-        return;
-      }
-      setPermDenied(false);
-    }
+  useEffect(() => {
+    setPref(getPref());
+  }, []);
+
+  const choose = (val: "sound" | "speech") => {
     setPref(val);
-    localStorage.setItem("notify_sound", val);
-
-    // Test
+    localStorage.setItem("notify_pref", val);
+    // Test tovushi
+    unlockAudio();
     if (val === "speech") {
-      speak("Bildirishnoma tovushi tanlandi");
+      speak("Xabar o'qish tanlandi");
     } else {
-      showNativeNotification("Test", "Bildirishnoma tovushi tanlandi");
+      playSound();
     }
   };
 
   return (
-    <div className="px-3 py-2 border-t border-gray-100 mt-1">
+    <div className="px-3 pb-2">
       <p className="text-xs text-gray-400 font-semibold mb-2 uppercase tracking-wide">
         Bildirishnoma tovushi
       </p>
       <div className="flex gap-2">
         <button
-          onClick={() => handleChange("notification")}
-          className={`flex-1 text-xs py-2 px-2 rounded-xl border-2 font-semibold transition-all ${
-            pref === "notification"
+          onClick={() => choose("sound")}
+          className={`flex-1 text-xs py-2 rounded-xl border-2 font-semibold transition-all ${
+            pref === "sound"
               ? "border-green-500 bg-green-50 text-green-700"
               : "border-gray-200 text-gray-500 hover:border-gray-300"
           }`}
         >
-          🔔 Default tovush
+          🔔 Tovush
         </button>
         <button
-          onClick={() => handleChange("speech")}
-          className={`flex-1 text-xs py-2 px-2 rounded-xl border-2 font-semibold transition-all ${
+          onClick={() => choose("speech")}
+          className={`flex-1 text-xs py-2 rounded-xl border-2 font-semibold transition-all ${
             pref === "speech"
               ? "border-blue-500 bg-blue-50 text-blue-700"
               : "border-gray-200 text-gray-500 hover:border-gray-300"
           }`}
         >
-          🗣️ Xabar o'qish
+          🗣️ O'qish
         </button>
       </div>
-      {permDenied && (
-        <p className="text-xs text-red-500 mt-1.5">
-          Bildirishnoma ruxsati rad etilgan. Brauzer sozlamalaridan ruxsat
-          bering.
-        </p>
-      )}
     </div>
   );
 }
 
-// ─── WEBSOCKET PROVIDER ────────────────────────────────────
+// ─── WEBSOCKET PROVIDER ───────────────────────────────────
 export default function WebSocketProvider() {
   const { isAuthenticated } = useAuthStore();
   const qc = useQueryClient();
@@ -152,12 +178,15 @@ export default function WebSocketProvider() {
   const isDestroyedRef = useRef(false);
   const MAX_RECONNECT = 15;
 
-  // Sahifa ochilganda notification ruxsatini so'rash
+  // Audio unlock — foydalanuvchi birinchi click da
   useEffect(() => {
-    if (isAuthenticated && getSoundPref() === "notification") {
-      requestNotificationPermission();
-    }
-  }, [isAuthenticated]);
+    document.addEventListener("click", unlockAudio, { once: true });
+    document.addEventListener("touchstart", unlockAudio, { once: true });
+    return () => {
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
 
   const buildWsUrl = useCallback((token: string): string => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
@@ -239,37 +268,30 @@ export default function WebSocketProvider() {
     ws.onmessage = (event) => {
       try {
         const { type, data } = JSON.parse(event.data as string);
-
         switch (type) {
           case "pong":
           case "connected":
           case "disconnected":
             break;
-
           case "new_order":
             qc.invalidateQueries({ queryKey: ["orders"] });
             qc.invalidateQueries({ queryKey: ["tables"] });
             notify(data?.message || "Yangi buyurtma keldi", "🍽️", 4000);
             break;
-
           case "qr_order":
             qc.invalidateQueries({ queryKey: ["orders"] });
             qc.invalidateQueries({ queryKey: ["tables"] });
             notify(
-              "QR buyurtma keldi: " +
-                (data?.items_count ?? "") +
-                " ta mahsulot",
+              "QR buyurtma: " + (data?.items_count ?? "") + " ta mahsulot",
               "📱",
               5000,
             );
             break;
-
           case "order_ready":
             qc.invalidateQueries({ queryKey: ["orders"] });
             qc.invalidateQueries({ queryKey: ["tables"] });
             notify("Buyurtma tayyor! Stolga olib boring.", "✅", 6000);
             break;
-
           default:
             break;
         }
