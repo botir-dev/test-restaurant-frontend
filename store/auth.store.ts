@@ -34,14 +34,33 @@ export const useAuthStore = create<AuthState>()(
       setHasHydrated: (val) => set({ _hasHydrated: val }),
 
       setUser: (user) => {
+        // localStorage da token saqlanadi (mavjud arxitektura saqlanadi).
+        // Ideal: httpOnly cookie — backend da /auth/login da Set-Cookie qaytarsa.
+        // Hozirgi holatda XSS ga karshi CSP helmet orqali himoyalangan (backend).
         localStorage.setItem("access_token", user.access_token);
         localStorage.setItem("refresh_token", user.refresh_token);
         set({ user, isAuthenticated: true });
       },
 
-      logout: () => {
-        localStorage.clear();
-        set({ user: null, isAuthenticated: false });
+      logout: async () => {
+        // Backend ga logout so'rovi — refresh token DB dan o'chiriladi
+        try {
+          const refresh_token = localStorage.getItem("refresh_token");
+          if (refresh_token) {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refresh_token }),
+            });
+          }
+        } catch {
+          // Tarmoq xatosida ham local state tozalanadi
+        } finally {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("auth-storage");
+          set({ user: null, isAuthenticated: false });
+        }
       },
 
       hasRole: (...roles) => {

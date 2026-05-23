@@ -99,7 +99,7 @@ export const productApi = {
     name: string;
     price: number;
     type: ProductType;
-    image_url: string;
+    image_url?: string;
   }) => api.post("/products", data),
   update: (id: string, data: Partial<Product>) =>
     api.put(`/products/${id}`, data),

@@ -404,6 +404,7 @@ function StaffDetailModal({
             <input
               className="input"
               value={form.full_name}
+              maxLength={100}
               onChange={(e) =>
                 setForm((p) => ({ ...p, full_name: e.target.value }))
               }
@@ -414,6 +415,7 @@ function StaffDetailModal({
             <input
               className="input"
               placeholder="+998..."
+              maxLength={20}
               value={form.phone}
               onChange={(e) =>
                 setForm((p) => ({ ...p, phone: e.target.value }))
@@ -428,6 +430,7 @@ function StaffDetailModal({
                 type={showPass ? "text" : "password"}
                 placeholder="••••••••"
                 value={form.password}
+                maxLength={128}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, password: e.target.value }))
                 }
@@ -590,6 +593,7 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
               className="input"
               placeholder="Aliyev Sardor"
               value={form.full_name}
+              maxLength={100}
               onChange={(e) =>
                 setForm((p) => ({ ...p, full_name: e.target.value }))
               }
@@ -601,6 +605,7 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
               className="input"
               placeholder="sardor_waiter"
               value={form.username}
+              maxLength={50}
               onChange={(e) =>
                 setForm((p) => ({ ...p, username: e.target.value }))
               }
@@ -611,6 +616,7 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
             <input
               className="input"
               placeholder="+998901234567"
+              maxLength={20}
               value={form.phone}
               onChange={(e) =>
                 setForm((p) => ({ ...p, phone: e.target.value }))
@@ -625,6 +631,7 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
                 type={showPass ? "text" : "password"}
                 placeholder="••••••••"
                 value={form.password}
+                maxLength={128}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, password: e.target.value }))
                 }

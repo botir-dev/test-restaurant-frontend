@@ -36,7 +36,28 @@ const BASE_TYPES: ProductType[] = [
   "other",
 ];
 
-// Taom turlarini boshqarish modali
+// ─── Image URL SSRF validator (frontend) ──────────────────────
+const isValidImageUrl = (url: string): boolean => {
+  if (!url) return true; // ixtiyoriy
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    const h = parsed.hostname.toLowerCase();
+    if (
+      h === "localhost" ||
+      h.startsWith("127.") ||
+      h.startsWith("10.") ||
+      h.startsWith("192.168.") ||
+      h === "0.0.0.0" ||
+      h.endsWith(".local")
+    )
+      return false;
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 function ProductTypeManager({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ key: "", label: "" });
@@ -116,7 +137,7 @@ function ProductTypeManager({ onClose }: { onClose: () => void }) {
                     </div>
                     <button
                       onClick={() => {
-                        if (confirm("O'chirishni tasdiqlaysizmi?"))
+                        if (window.confirm("O'chirishni tasdiqlaysizmi?"))
                           deleteMutation.mutate(t.id);
                       }}
                       className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100"
@@ -150,6 +171,7 @@ function ProductTypeManager({ onClose }: { onClose: () => void }) {
                     className="input"
                     placeholder="Salat"
                     value={form.label}
+                    maxLength={100}
                     onChange={(e) =>
                       setForm((p) => ({ ...p, label: e.target.value }))
                     }
@@ -161,8 +183,14 @@ function ProductTypeManager({ onClose }: { onClose: () => void }) {
                     className="input"
                     placeholder="salat"
                     value={form.key}
+                    maxLength={50}
                     onChange={(e) =>
-                      setForm((p) => ({ ...p, key: e.target.value }))
+                      setForm((p) => ({
+                        ...p,
+                        key: e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9_]/g, ""),
+                      }))
                     }
                   />
                   <p className="text-xs text-gray-400 mt-1">
@@ -171,7 +199,7 @@ function ProductTypeManager({ onClose }: { onClose: () => void }) {
                 </div>
                 <button
                   onClick={() => createMutation.mutate()}
-                  disabled={createMutation.isPending || !form.label}
+                  disabled={createMutation.isPending || !form.label.trim()}
                   className="btn-primary w-full justify-center text-sm py-2"
                 >
                   {createMutation.isPending ? (
@@ -196,7 +224,6 @@ function ProductTypeManager({ onClose }: { onClose: () => void }) {
   );
 }
 
-// Mahsulot yaratish/tahrirlash modali
 function ProductModalFull({
   product,
   allTypesForSelect,
@@ -214,23 +241,33 @@ function ProductModalFull({
     image_url: product?.image_url || "",
     is_available: product?.is_available ?? true,
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!form.name.trim()) e.name = "Nom kiritilishi shart";
+    const price = parseFloat(form.price);
+    if (isNaN(price) || price < 0) e.price = "Narx 0 dan katta bo'lishi kerak";
+    if (price > 99_999_999) e.price = "Narx juda katta";
+    if (form.image_url && !isValidImageUrl(form.image_url))
+      e.image_url = "Faqat https:// manzillar qabul qilinadi";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
   const mutation = useMutation({
-    mutationFn: () =>
-      product
-        ? productApi.update(product.id, {
-            name: form.name,
-            price: Number(form.price),
-            type: form.type as any,
-            image_url: form.image_url,
-            is_available: form.is_available,
-          })
-        : productApi.create({
-            name: form.name,
-            price: Number(form.price),
-            type: form.type as ProductType,
-            image_url: form.image_url,
-          }),
+    mutationFn: () => {
+      const payload = {
+        name: form.name.trim(),
+        price: parseFloat(form.price),
+        type: form.type as ProductType,
+        image_url: form.image_url || undefined,
+        ...(product ? { is_available: form.is_available } : {}),
+      };
+      return product
+        ? productApi.update(product.id, payload)
+        : productApi.create(payload);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] });
       toast.success(product ? "Yangilandi" : "Qo'shildi");
@@ -238,6 +275,10 @@ function ProductModalFull({
     },
     onError: (e: any) => toast.error(e.response?.data?.message || "Xato"),
   });
+
+  const handleSubmit = () => {
+    if (validate()) mutation.mutate();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
@@ -254,23 +295,32 @@ function ProductModalFull({
           <div>
             <label className="label">Nomi *</label>
             <input
-              className="input"
+              className={clsx("input", errors.name && "border-red-400")}
               placeholder="Lag'mon"
               value={form.name}
+              maxLength={200}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             />
+            {errors.name && (
+              <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+            )}
           </div>
           <div>
             <label className="label">Narxi (so'm) *</label>
             <input
-              className="input"
+              className={clsx("input", errors.price && "border-red-400")}
               type="number"
               placeholder="25000"
+              min={0}
+              max={99999999}
               value={form.price}
               onChange={(e) =>
                 setForm((p) => ({ ...p, price: e.target.value }))
               }
             />
+            {errors.price && (
+              <p className="text-xs text-red-500 mt-1">{errors.price}</p>
+            )}
           </div>
           <div>
             <label className="label">Turi *</label>
@@ -302,15 +352,23 @@ function ProductModalFull({
             </select>
           </div>
           <div>
-            <label className="label">Rasm URL *</label>
+            <label className="label">Rasm URL</label>
             <input
-              className="input"
-              placeholder="https://..."
+              className={clsx("input", errors.image_url && "border-red-400")}
+              placeholder="https://example.com/image.jpg"
               value={form.image_url}
+              maxLength={500}
               onChange={(e) =>
                 setForm((p) => ({ ...p, image_url: e.target.value }))
               }
             />
+            {errors.image_url ? (
+              <p className="text-xs text-red-500 mt-1">{errors.image_url}</p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">
+                Faqat https:// bilan boshlanadigan URL
+              </p>
+            )}
           </div>
           {product && (
             <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
@@ -318,6 +376,7 @@ function ProductModalFull({
                 Mavjud
               </span>
               <button
+                type="button"
                 onClick={() =>
                   setForm((p) => ({ ...p, is_available: !p.is_available }))
                 }
@@ -343,13 +402,8 @@ function ProductModalFull({
               Bekor
             </button>
             <button
-              onClick={() => mutation.mutate()}
-              disabled={
-                mutation.isPending ||
-                !form.name ||
-                !form.price ||
-                !form.image_url
-              }
+              onClick={handleSubmit}
+              disabled={mutation.isPending}
               className="btn-primary flex-1 justify-center"
             >
               {mutation.isPending ? (
@@ -376,7 +430,6 @@ export default function ProductsPage() {
   const [showTypeManager, setShowTypeManager] = useState(false);
   const [page, setPage] = useState(1);
 
-  // Custom turlarni olish (faqat manager/storekeeper uchun)
   const { data: customTypesData } = useQuery({
     queryKey: ["custom-product-types"],
     queryFn: () => customProductTypeApi.getAll(),
@@ -385,7 +438,6 @@ export default function ProductsPage() {
 
   const customTypes = (customTypesData?.data?.data || []) as any[];
 
-  // Foydalanuvchining ruxsat etilgan turlarini hisoblash
   const NON_PREPARER = [
     "manager",
     "waiter",
@@ -403,7 +455,6 @@ export default function ProductsPage() {
     return Array.from(types);
   })();
 
-  // Barcha turlar (standart + custom) — filter va modal uchun
   const allTypesForSelect = [
     ...BASE_TYPES.map((t) => ({ key: t, label: PRODUCT_TYPE_LABELS[t] })),
     ...customTypes.map((t) => ({ key: t.key, label: t.label })),
@@ -412,9 +463,8 @@ export default function ProductsPage() {
     allTypesForSelect.map((t) => [t.key, t.label]),
   );
 
-  // Menejer va omborchi barcha mahsulotlarni ko'radi va o'zgartira oladi
   const canEdit = user?.role === "manager" || user?.role === "storekeeper";
-  const canToggle = canEdit || isPreparerUser; // tayyorlovchilar ham toggle qila oladi
+  const canToggle = canEdit || isPreparerUser;
 
   const { data, isLoading } = useQuery({
     queryKey: ["products", activeType, page],
@@ -429,9 +479,6 @@ export default function ProductsPage() {
   const products: Product[] = data?.data?.data || [];
   const pagination = data?.data?.pagination;
 
-  // Mahsulotlarni filter qilish
-  // Tayyorlovchi — faqat o'z turlari + qidiruv
-  // Menejer/omborchi — hammasi + qidiruv
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
@@ -457,6 +504,15 @@ export default function ProductsPage() {
     onError: (e: any) =>
       toast.error(e.response?.data?.message || "Ruxsat yo'q"),
   });
+
+  const handleDelete = (id: string) => {
+    if (
+      window.confirm(
+        "O'chirishni tasdiqlaysizmi? Agar faol buyurtmalarda bo'lsa, backend bloklaydi.",
+      )
+    )
+      deleteMutation.mutate(id);
+  };
 
   return (
     <div className="space-y-4 animate-fadeIn">
@@ -499,6 +555,7 @@ export default function ProductsPage() {
           className="input pl-9"
           placeholder="Qidirish..."
           value={search}
+          maxLength={100}
           onChange={(e) => setSearch(e.target.value)}
         />
         {search && (
@@ -511,7 +568,6 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* Filter — tayyorlovchi uchun faqat o'z turlari, menejer uchun hammasi */}
       {!isPreparerUser && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           <button
@@ -575,6 +631,7 @@ export default function ProductsPage() {
                     src={product.image_url}
                     alt={product.name}
                     className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
@@ -603,7 +660,6 @@ export default function ProductsPage() {
                   {formatPrice(product.price)}
                 </p>
                 <div className="flex items-center gap-1.5 mt-2">
-                  {/* Mavjudlik toggle — tayyorlovchi ham o'zgartira oladi */}
                   {canToggle && (
                     <button
                       onClick={() =>
@@ -622,7 +678,6 @@ export default function ProductsPage() {
                       {product.is_available ? "Mavjud" : "Yo'q"}
                     </button>
                   )}
-                  {/* Tahrirlash faqat menejer va omborchiga */}
                   {canEdit && (
                     <>
                       <button
@@ -635,10 +690,7 @@ export default function ProductsPage() {
                         <Pencil className="w-3.5 h-3.5 text-gray-600" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm("O'chirishni tasdiqlaysizmi?"))
-                            deleteMutation.mutate(product.id);
-                        }}
+                        onClick={() => handleDelete(product.id)}
                         className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100"
                       >
                         <Trash2 className="w-3.5 h-3.5 text-red-500" />
