@@ -2,6 +2,18 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User, Role, ProductType } from "@/types";
 
+// ─── Cookie yordamchi funksiyalar ────────────────────────────
+const setCookie = (name: string, value: string, days = 7) => {
+  if (typeof document === "undefined") return;
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
+const deleteCookie = (name: string) => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -34,16 +46,18 @@ export const useAuthStore = create<AuthState>()(
       setHasHydrated: (val) => set({ _hasHydrated: val }),
 
       setUser: (user) => {
-        // localStorage da token saqlanadi (mavjud arxitektura saqlanadi).
-        // Ideal: httpOnly cookie — backend da /auth/login da Set-Cookie qaytarsa.
-        // Hozirgi holatda XSS ga karshi CSP helmet orqali himoyalangan (backend).
+        // Token lар localStorage + cookie ga saqlanadi
         localStorage.setItem("access_token", user.access_token);
         localStorage.setItem("refresh_token", user.refresh_token);
+
+        // Middleware uchun cookie ga role yozamiz
+        setCookie("user_role", user.role, 7);
+        setCookie("is_authenticated", "true", 7);
+
         set({ user, isAuthenticated: true });
       },
 
       logout: async () => {
-        // Backend ga logout so'rovi — refresh token DB dan o'chiriladi
         try {
           const refresh_token = localStorage.getItem("refresh_token");
           if (refresh_token) {
@@ -54,11 +68,13 @@ export const useAuthStore = create<AuthState>()(
             });
           }
         } catch {
-          // Tarmoq xatosida ham local state tozalanadi
+          // Tarmoq xatosida ham tozalanadi
         } finally {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
           localStorage.removeItem("auth-storage");
+          deleteCookie("user_role");
+          deleteCookie("is_authenticated");
           set({ user: null, isAuthenticated: false });
         }
       },

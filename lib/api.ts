@@ -5,7 +5,13 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// ─── Request interceptor — tokenni qo'shish ──────────────────
+// ─── Cookie o'chirish yordamchi ───────────────────────────────
+const deleteCookie = (name: string) => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
+
+// ─── Request interceptor ──────────────────────────────────────
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("access_token");
@@ -27,6 +33,14 @@ const processQueue = (error: unknown, token: string | null = null) => {
     else resolve(token);
   });
   failedQueue = [];
+};
+
+const clearAuth = () => {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("auth-storage");
+  deleteCookie("user_role");
+  deleteCookie("is_authenticated");
 };
 
 api.interceptors.response.use(
@@ -71,9 +85,7 @@ api.interceptors.response.use(
       return api(original);
     } catch (refreshErr) {
       processQueue(refreshErr, null);
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("auth-storage");
+      clearAuth();
       if (typeof window !== "undefined") {
         window.location.href = "/login";
       }

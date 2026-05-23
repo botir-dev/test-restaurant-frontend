@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Rollarga qarab ruxsat etilgan marshrutlar
+// Rolga qarab ruxsat etilgan sahifalar
 const ROLE_ROUTES: Record<string, string[]> = {
   super_admin: ["/admin", "/restaurants", "/branches"],
   manager: [
@@ -12,79 +12,57 @@ const ROLE_ROUTES: Record<string, string[]> = {
     "/archive",
     "/staff",
     "/settings",
+    "/qr",
+    "/earnings",
   ],
-  waiter: ["/tables", "/orders"],
-  cashier: ["/cashier", "/archive"],
+  waiter: ["/tables", "/orders", "/earnings"],
+  cashier: ["/cashier", "/orders", "/archive"],
   storekeeper: ["/products", "/archive"],
-  cook: ["/kitchen"],
-  baker: ["/kitchen"],
-  somsa_maker: ["/kitchen"],
-  grill_master: ["/kitchen"],
-  turkish_cook: ["/kitchen"],
-  bartender: ["/kitchen"],
-  icecream_maker: ["/kitchen"],
-  tea_master: ["/kitchen"],
+  cook: ["/kitchen", "/products"],
+  baker: ["/kitchen", "/products"],
+  somsa_maker: ["/kitchen", "/products"],
+  grill_master: ["/kitchen", "/products"],
+  turkish_cook: ["/kitchen", "/products"],
+  bartender: ["/kitchen", "/products"],
+  icecream_maker: ["/kitchen", "/products"],
+  tea_master: ["/kitchen", "/products"],
 };
 
-// Barcha autentifikatsiya kerak bo'lgan marshrut prefikslari
-const PROTECTED_PREFIXES = [
-  "/admin",
-  "/dashboard",
-  "/products",
-  "/tables",
-  "/orders",
-  "/archive",
-  "/staff",
-  "/settings",
-  "/cashier",
-  "/kitchen",
-  "/restaurants",
-  "/branches",
-];
+const ROLE_HOME: Record<string, string> = {
+  super_admin: "/admin",
+  manager: "/dashboard",
+  waiter: "/tables",
+  cashier: "/cashier",
+  storekeeper: "/products",
+};
 
-// Ochiq marshrut — token kerak emas
-const PUBLIC_PATHS = ["/login", "/qr"];
+const PUBLIC_PATHS = ["/login", "/qr", "/menu"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Ochiq marshrut — o'tkazib yuborish
+  // Ochiq sahifalar
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Himoyalangan marshrut emasmi?
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-  if (!isProtected) return NextResponse.next();
+  // Autentifikatsiya tekshiruvi
+  const isAuth = request.cookies.get("is_authenticated")?.value === "true";
+  const role = request.cookies.get("user_role")?.value;
 
-  // Cookie dan auth-storage ni o'qish (zustand persist)
-  const authCookie = request.cookies.get("auth-storage")?.value;
-  let role: string | null = null;
-
-  if (authCookie) {
-    try {
-      const parsed = JSON.parse(decodeURIComponent(authCookie));
-      role = parsed?.state?.user?.role ?? null;
-    } catch {
-      role = null;
-    }
-  }
-
-  // Token yo'q — login ga yo'naltirish
-  if (!role) {
+  if (!isAuth || !role) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Rolga mos marshrutlarni tekshirish
-  const allowedRoutes = ROLE_ROUTES[role] ?? [];
+  // Rolga mos sahifani tekshirish
+  const allowedRoutes = ROLE_ROUTES[role] ?? ["/kitchen", "/products"];
   const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
 
   if (!hasAccess) {
-    // Ruxsatsiz sahifaga kirmoqchi — asosiy sahifasiga yo'naltirish
-    const homeRoute = allowedRoutes[0] ?? "/login";
-    return NextResponse.redirect(new URL(homeRoute, request.url));
+    const home = ROLE_HOME[role] ?? "/kitchen";
+    return NextResponse.redirect(new URL(home, request.url));
   }
 
   return NextResponse.next();
