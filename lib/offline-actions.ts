@@ -69,7 +69,7 @@ export const completePaymentOffline = async (
 ) => {
   if (navigator.onLine) {
     try {
-      const res = await api.post(`/payments/${orderId}/pay`, {
+      const res = await api.post(`/payments/${orderId}`, {
         payment_type: paymentType,
       });
       return { success: true, data: res.data.data, offline: false };
