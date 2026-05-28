@@ -39,7 +39,7 @@ const ROLE_HOME: Record<string, string> = {
 
 const PUBLIC_PATHS = ["/login", "/qr", "/menu"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Ochiq sahifalar
