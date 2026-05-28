@@ -14,6 +14,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
     "/settings",
     "/qr",
     "/earnings",
+    "/cashier",
   ],
   waiter: ["/tables", "/orders", "/earnings"],
   cashier: ["/cashier", "/orders", "/archive"],

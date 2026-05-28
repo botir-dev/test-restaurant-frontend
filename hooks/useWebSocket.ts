@@ -44,20 +44,17 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
    * NEXT_PUBLIC_API_URL = "https://api.example.com" -> "wss://api.example.com"
    * NEXT_PUBLIC_API_URL bo'sh bo'lsa — joriy origin ishlatiladi
    */
-  const buildWsUrl = useCallback((token: string): string => {
+  const buildWsUrl = useCallback((): string => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
     if (apiUrl) {
-      // http:// -> ws://, https:// -> wss://
       return (
-        apiUrl.replace(/^https?/, (m) => (m === "https" ? "wss" : "ws")) +
-        `/ws?token=${token}`
+        apiUrl.replace(/^https?/, (m) => (m === "https" ? "wss" : "ws")) + "/ws"
       );
     }
 
-    // Fallback: joriy sahifa origini
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    return `${proto}://${window.location.host}/ws?token=${token}`;
+    return `${proto}://${window.location.host}/ws`;
   }, []);
 
   const connect = useCallback(() => {
@@ -74,23 +71,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
 
     const token = localStorage.getItem("access_token");
-    if (!token) {
-      // Token yo'q — kirish sahifasiga yo'naltirish kerak emas bu yerda,
-      // auth store boshqaradi. Shunchaki ulanmaymiz.
-      return;
-    }
+    if (!token) return;
 
     let wsUrl: string;
     try {
-      wsUrl = buildWsUrl(token);
+      wsUrl = buildWsUrl();
     } catch (err) {
       console.error("WS: URL tuzishda xato:", err);
       return;
     }
 
+    // Token subprotocol orqali yuboriladi — URL da ko'rinmaydi
+    // Backend ws.routes.js da: request.headers['sec-websocket-protocol'] dan o'qiladi
     let ws: WebSocket;
     try {
-      ws = new WebSocket(wsUrl);
+      ws = new WebSocket(wsUrl, [`bearer.${token}`]);
     } catch (err) {
       console.error("WS: WebSocket yaratishda xato:", err);
       scheduleReconnect();
@@ -141,7 +136,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       // 1000 = normal yopilish, 1001 = sahifa yopildi
       if (!reconnect || event.code === 1000 || event.code === 1001) return;
 
-      
       scheduleReconnect();
     };
 
