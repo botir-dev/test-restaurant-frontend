@@ -165,7 +165,44 @@ function TableCard({ table }: { table: Table }) {
 
       {expanded && isOccupied && (
         <div className="border-t border-red-200 px-4 pb-4 animate-fadeIn">
-          {order ? (
+          {!table.current_order_id ? (
+            // ─── Stol band lekin buyurtma yo'q ──────────────
+            <div className="py-3">
+              <div className="text-center py-3 mb-3">
+                <UtensilsCrossed className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-gray-600">
+                  Hali buyurtma berilmagan
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Stol band qilingan, buyurtma kutilmoqda
+                </p>
+              </div>
+              <div className="space-y-2">
+                {user?.role === "waiter" && (
+                  <Link
+                    href={`/tables/${table.id}/order`}
+                    className="flex items-center justify-center gap-2 w-full bg-green-600 text-white font-semibold py-2 rounded-xl text-sm hover:bg-green-700 transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Buyurtma qo'shish
+                  </Link>
+                )}
+                {(user?.role === "manager" || user?.role === "waiter") && (
+                  <button
+                    onClick={() => freeMutation.mutate()}
+                    disabled={freeMutation.isPending}
+                    className="flex items-center justify-center gap-2 w-full border border-red-200 text-red-600 font-semibold py-2 rounded-xl text-sm hover:bg-red-50 transition-all"
+                  >
+                    {freeMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4" />
+                    )}
+                    Stolni bo'shatish
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : order ? (
             <>
               <div className="flex items-center justify-between py-2 mb-2">
                 <span
@@ -265,6 +302,7 @@ function TableCard({ table }: { table: Table }) {
               </div>
             </>
           ) : (
+            // current_order_id bor lekin order hali yuklanmoqda
             <div className="py-4 text-center">
               <Loader2 className="w-5 h-5 animate-spin text-gray-400 mx-auto" />
             </div>
