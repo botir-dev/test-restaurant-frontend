@@ -95,6 +95,7 @@ export interface Table {
   next_reservation?: {
     id: string;
     full_name: string;
+    phone: string;
     reserved_at: string;
     duration_min: number;
   } | null;

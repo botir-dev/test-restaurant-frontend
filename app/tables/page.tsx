@@ -137,17 +137,26 @@ function TableCard({ table }: { table: Table }) {
         </div>
 
         {nextRes && !isOccupied && (
-          <div className="mt-2 flex items-center gap-1.5 bg-blue-50 rounded-xl px-3 py-1.5">
-            <CalendarDays className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-            <span className="text-xs text-blue-700 font-medium truncate">
-              {nextRes.full_name} ·{" "}
-              {new Date(nextRes.reserved_at).toLocaleString("uz-UZ", {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+          <div className="mt-2 flex flex-col gap-0.5 bg-blue-50 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+              <span className="text-xs text-blue-700 font-semibold truncate">
+                {nextRes.full_name}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 pl-0.5">
+              <span className="text-xs text-blue-600 flex items-center gap-1">
+                <Phone className="w-3 h-3" /> {nextRes.phone}
+              </span>
+              <span className="text-xs text-blue-500">
+                {new Date(nextRes.reserved_at).toLocaleString("uz-UZ", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
           </div>
         )}
 
