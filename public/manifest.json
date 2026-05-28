@@ -1,6 +1,6 @@
 {
   "name": "Restoran Tizimi",
-  "short_name": "RBT",
+  "short_name": "Restoran",
   "description": "Restoran boshqaruv tizimi",
   "start_url": "/",
   "display": "standalone",
