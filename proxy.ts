@@ -39,15 +39,14 @@ const ROLE_HOME: Record<string, string> = {
 
 const PUBLIC_PATHS = ["/login", "/qr", "/menu"];
 
+// ← "middleware" o'rniga "proxy" — Next.js yangi talabi
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Ochiq sahifalar
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Autentifikatsiya tekshiruvi
   const isAuth = request.cookies.get("is_authenticated")?.value === "true";
   const role = request.cookies.get("user_role")?.value;
 
@@ -57,7 +56,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Rolga mos sahifani tekshirish
   const allowedRoutes = ROLE_ROUTES[role] ?? ["/kitchen", "/products"];
   const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
 
