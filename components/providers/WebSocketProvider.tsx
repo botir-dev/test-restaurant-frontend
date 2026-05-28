@@ -1,11 +1,10 @@
-'use client';
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '@/store/auth.store';
-import toast from 'react-hot-toast';
+"use client";
+import { useEffect, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth.store";
+import toast from "react-hot-toast";
 
-// ─── AudioContext unlock (iOS/Android uchun) ──────────────
-// Foydalanuvchi birinchi tap/click qilganda AudioContext ochiladi
+// ─── AudioContext unlock (iOS/Android birinchi tap keyin ishlaydi) ──
 let audioCtxUnlocked = false;
 const unlockAudio = () => {
   if (audioCtxUnlocked) return;
@@ -23,144 +22,64 @@ const unlockAudio = () => {
   } catch (_) {}
 };
 
-// ─── NOTIFICATION SOUND (AudioContext) ───────────────────
-// Ikkita beep — telefon bildirishnoma tovushiga o'xshash
+// ─── RINGTONE: chiroyli "ding-dong" chime ────────────────────────────
 const playSound = () => {
   try {
     const AC = window.AudioContext || (window as any).webkitAudioContext;
     if (!AC) return;
     const ctx = new AC();
 
-    const beep = (freq: number, start: number, duration: number, vol = 0.5) => {
+    const note = (
+      freq: number,
+      start: number,
+      duration: number,
+      vol = 0.45,
+      type: OscillatorType = "sine",
+    ) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.type = 'sine';
+      osc.type = type;
       osc.frequency.value = freq;
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(vol, start + 0.01);
+      gain.gain.linearRampToValueAtTime(vol, start + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
       osc.start(start);
-      osc.stop(start + duration);
+      osc.stop(start + duration + 0.01);
     };
 
     const t = ctx.currentTime;
-    // 1-chi signal
-    beep(880, t + 0.0,  0.15);
-    beep(660, t + 0.18, 0.15);
-    // 2-chi signal (0.5s keyin)
-    beep(880, t + 0.5,  0.15);
-    beep(660, t + 0.68, 0.15);
+    // "Ding-dong" melodiyasi — ikki marta
+    note(1046.5, t + 0.0, 0.25); // Do5
+    note(784.0, t + 0.28, 0.35); // Sol4
+    note(880.0, t + 0.7, 0.2); // La4
+    note(1046.5, t + 0.93, 0.35); // Do5
 
-    setTimeout(() => { try { ctx.close(); } catch (_) {} }, 1500);
+    setTimeout(() => {
+      try {
+        ctx.close();
+      } catch (_) {}
+    }, 2000);
   } catch (_) {}
 };
 
-// ─── SPEECH ───────────────────────────────────────────────
-const speak = (text: string) => {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-
-  const doSpeak = () => {
-    const utter = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    const v = voices.find(v => v.lang.startsWith('ru'))
-           || voices.find(v => v.default)
-           || voices[0];
-    if (v) utter.voice = v;
-    utter.rate = 0.88;
-    utter.pitch = 1;
-    utter.volume = 1;
-    window.speechSynthesis.speak(utter);
-  };
-
-  // Voices hali yuklanmagan bo'lishi mumkin
-  if (window.speechSynthesis.getVoices().length > 0) {
-    doSpeak();
-  } else {
-    window.speechSynthesis.onvoiceschanged = () => {
-      window.speechSynthesis.onvoiceschanged = null;
-      doSpeak();
-    };
-  }
-};
-
-// ─── VIBRATSIYA ───────────────────────────────────────────
+// ─── VIBRATSIYA ──────────────────────────────────────────────────────
 const vibrate = () => {
-  try { navigator.vibrate?.([200, 100, 200, 100, 400]); } catch (_) {}
+  try {
+    // Qisqa-uzun-qisqa naqsh
+    navigator.vibrate?.([150, 80, 150, 80, 300]);
+  } catch (_) {}
 };
 
-// ─── SOZLAMA ──────────────────────────────────────────────
-const getPref = (): 'sound' | 'speech' =>
-  (typeof window !== 'undefined'
-    ? (localStorage.getItem('notify_pref') as any) || 'sound'
-    : 'sound');
-
-// ─── NOTIFY ───────────────────────────────────────────────
+// ─── ASOSIY NOTIFY ───────────────────────────────────────────────────
 const notify = (msg: string, icon: string, duration: number) => {
   toast.success(msg, { icon, duration });
+  playSound();
   vibrate();
-  const pref = getPref();
-  if (pref === 'speech') {
-    speak(msg);
-  } else {
-    playSound();
-  }
 };
 
-// ─── SOUND SETTINGS BUTTON (Sidebar uchun) ────────────────
-export function SoundSettingsButton() {
-  const [pref, setPref] = useState<'sound' | 'speech'>('sound');
-
-  useEffect(() => {
-    setPref(getPref());
-  }, []);
-
-  const choose = (val: 'sound' | 'speech') => {
-    setPref(val);
-    localStorage.setItem('notify_pref', val);
-    // Test tovushi
-    unlockAudio();
-    if (val === 'speech') {
-      speak('Xabar o\'qish tanlandi');
-    } else {
-      playSound();
-    }
-  };
-
-  return (
-    <div className="px-3 pb-2">
-      <p className="text-xs text-gray-400 font-semibold mb-2 uppercase tracking-wide">
-        Bildirishnoma tovushi
-      </p>
-      <div className="flex gap-2">
-        <button
-          onClick={() => choose('sound')}
-          className={`flex-1 text-xs py-2 rounded-xl border-2 font-semibold transition-all ${
-            pref === 'sound'
-              ? 'border-green-500 bg-green-50 text-green-700'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300'
-          }`}
-        >
-          🔔 Tovush
-        </button>
-        <button
-          onClick={() => choose('speech')}
-          className={`flex-1 text-xs py-2 rounded-xl border-2 font-semibold transition-all ${
-            pref === 'speech'
-              ? 'border-blue-500 bg-blue-50 text-blue-700'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300'
-          }`}
-        >
-          🗣️ O'qish
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── WEBSOCKET PROVIDER ───────────────────────────────────
+// ─── WEBSOCKET PROVIDER ──────────────────────────────────────────────
 export default function WebSocketProvider() {
   const { isAuthenticated } = useAuthStore();
   const qc = useQueryClient();
@@ -171,23 +90,26 @@ export default function WebSocketProvider() {
   const isDestroyedRef = useRef(false);
   const MAX_RECONNECT = 15;
 
-  // Audio unlock — foydalanuvchi birinchi click da
+  // AudioContext unlock — birinchi foydalanuvchi harakati
   useEffect(() => {
-    document.addEventListener('click', unlockAudio, { once: true });
-    document.addEventListener('touchstart', unlockAudio, { once: true });
+    document.addEventListener("click", unlockAudio, { once: true });
+    document.addEventListener("touchstart", unlockAudio, { once: true });
     return () => {
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
     };
   }, []);
 
-  const buildWsUrl = useCallback((token: string): string => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  // ─── WS URL: token subprotocol orqali ─────────────────────────────
+  const buildWsUrl = useCallback((): string => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
     if (apiUrl) {
-      return apiUrl.replace(/^https?/, (m) => (m === 'https' ? 'wss' : 'ws')) + '/ws?token=' + token;
+      return (
+        apiUrl.replace(/^https?/, (m) => (m === "https" ? "wss" : "ws")) + "/ws"
+      );
     }
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    return proto + '://' + window.location.host + '/ws?token=' + token;
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    return proto + "://" + window.location.host + "/ws";
   }, []);
 
   const disconnect = useCallback(() => {
@@ -197,7 +119,9 @@ export default function WebSocketProvider() {
     }
     if (wsRef.current) {
       clearInterval((wsRef.current as any)._pingInterval);
-      try { wsRef.current.close(1000, 'disconnect'); } catch (_) {}
+      try {
+        wsRef.current.close(1000, "disconnect");
+      } catch (_) {}
       wsRef.current = null;
     }
   }, []);
@@ -207,27 +131,33 @@ export default function WebSocketProvider() {
   const scheduleReconnect = useCallback(() => {
     if (isDestroyedRef.current) return;
     if (reconnectCountRef.current >= MAX_RECONNECT) return;
-    const delay = Math.min(2000 * Math.pow(1.5, reconnectCountRef.current), 30000);
+    const delay = Math.min(
+      2000 * Math.pow(1.5, reconnectCountRef.current),
+      30000,
+    );
     reconnectCountRef.current += 1;
     reconnectTimerRef.current = setTimeout(() => connectRef.current(), delay);
   }, []);
 
   const connect = useCallback(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     if (isDestroyedRef.current) return;
 
     if (wsRef.current) {
       clearInterval((wsRef.current as any)._pingInterval);
-      try { wsRef.current.close(1000, 'reconnecting'); } catch (_) {}
+      try {
+        wsRef.current.close(1000, "reconnecting");
+      } catch (_) {}
       wsRef.current = null;
     }
 
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
     if (!token) return;
 
     let ws: WebSocket;
     try {
-      ws = new WebSocket(buildWsUrl(token));
+      // Token subprotocol orqali — URL da ko'rinmaydi
+      ws = new WebSocket(buildWsUrl(), [`bearer.${token}`]);
     } catch {
       scheduleReconnect();
       return;
@@ -239,7 +169,7 @@ export default function WebSocketProvider() {
       reconnectCountRef.current = 0;
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ping' }));
+          ws.send(JSON.stringify({ type: "ping" }));
         } else {
           clearInterval(pingInterval);
         }
@@ -251,24 +181,28 @@ export default function WebSocketProvider() {
       try {
         const { type, data } = JSON.parse(event.data as string);
         switch (type) {
-          case 'pong':
-          case 'connected':
-          case 'disconnected':
+          case "pong":
+          case "connected":
+          case "disconnected":
             break;
-          case 'new_order':
-            qc.invalidateQueries({ queryKey: ['orders'] });
-            qc.invalidateQueries({ queryKey: ['tables'] });
-            notify(data?.message || 'Yangi buyurtma keldi', '🍽️', 4000);
+          case "new_order":
+            qc.invalidateQueries({ queryKey: ["orders"] });
+            qc.invalidateQueries({ queryKey: ["tables"] });
+            notify(data?.message || "Yangi buyurtma keldi!", "🍽️", 5000);
             break;
-          case 'qr_order':
-            qc.invalidateQueries({ queryKey: ['orders'] });
-            qc.invalidateQueries({ queryKey: ['tables'] });
-            notify('QR buyurtma: ' + (data?.items_count ?? '') + ' ta mahsulot', '📱', 5000);
+          case "qr_order":
+            qc.invalidateQueries({ queryKey: ["orders"] });
+            qc.invalidateQueries({ queryKey: ["tables"] });
+            notify(
+              "QR buyurtma: " + (data?.items_count ?? "") + " ta mahsulot",
+              "📱",
+              5000,
+            );
             break;
-          case 'order_ready':
-            qc.invalidateQueries({ queryKey: ['orders'] });
-            qc.invalidateQueries({ queryKey: ['tables'] });
-            notify('Buyurtma tayyor! Stolga olib boring.', '✅', 6000);
+          case "order_ready":
+            qc.invalidateQueries({ queryKey: ["orders"] });
+            qc.invalidateQueries({ queryKey: ["tables"] });
+            notify("Buyurtma tayyor! Stolga olib boring.", "✅", 6000);
             break;
           default:
             break;

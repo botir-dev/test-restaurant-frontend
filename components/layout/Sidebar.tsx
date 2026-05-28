@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { authApi, customRoleApi } from "@/lib/services";
 import { useQuery } from "@tanstack/react-query";
-import { ROLE_LABELS, isPreparerRole } from "@/lib/utils";
+import { ROLE_LABELS } from "@/lib/utils";
 import toast from "react-hot-toast";
 import {
   LayoutDashboard,
@@ -27,9 +27,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
-import WebSocketProvider, {
-  SoundSettingsButton,
-} from "@/components/providers/WebSocketProvider";
+import WebSocketProvider from "@/components/providers/WebSocketProvider";
 
 const navItems = [
   {
@@ -134,23 +132,22 @@ export default function Sidebar() {
     staleTime: 60000,
   });
 
-  const isCustomRole = user
-    ? ![
-        "manager",
-        "super_admin",
-        "waiter",
-        "cashier",
-        "storekeeper",
-        "cook",
-        "baker",
-        "somsa_maker",
-        "grill_master",
-        "turkish_cook",
-        "bartender",
-        "icecream_maker",
-        "tea_master",
-      ].includes(user.role)
-    : false;
+  const STANDARD_ROLES = [
+    "manager",
+    "super_admin",
+    "waiter",
+    "cashier",
+    "storekeeper",
+    "cook",
+    "baker",
+    "somsa_maker",
+    "grill_master",
+    "turkish_cook",
+    "bartender",
+    "icecream_maker",
+    "tea_master",
+  ];
+  const isCustomRole = user ? !STANDARD_ROLES.includes(user.role) : false;
 
   const visible = navItems.filter((n) => {
     if (!user) return false;
@@ -162,6 +159,7 @@ export default function Sidebar() {
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
+      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
         <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
           <UtensilsCrossed className="w-5 h-5 text-white" />
@@ -174,12 +172,14 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Rol badge */}
       <div className="px-4 py-3">
         <span className="badge bg-green-100 text-green-700">
           {user ? ROLE_LABELS[user.role] || user.role : ""}
         </span>
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {visible.map((item) => {
           const active = pathname.startsWith(item.href);
@@ -203,7 +203,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <SoundSettingsButton />
+      {/* Logout — SoundSettingsButton olib tashlandi */}
       <div className="p-3 border-t border-gray-100">
         <button
           onClick={handleLogout}
@@ -218,7 +218,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Global WebSocket — butun dastur uchun bitta ulanish */}
+      {/* Global WebSocket — butun dastur uchun bitta ulanish, ding-dong sound */}
       <WebSocketProvider />
 
       {/* Mobile topbar */}
