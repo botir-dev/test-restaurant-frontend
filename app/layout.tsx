@@ -1,10 +1,10 @@
-import type { Metadata, Viewport } from "next"; // ← Viewport turini qo'shdik
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import QueryProvider from "@/components/providers/QueryProvider";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import ServiceWorkerInit from "@/components/ServiceWorkerInit";
 
-// 1. Faqat matnli va standart metadatalar qoladi
 export const metadata: Metadata = {
   title: "Restoran Boshqaruv Tizimi",
   description: "Restoran boshqaruv tizimi",
@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   },
 };
 
-// 2. Next.js 16 talabi bo'yicha viewport va themeColor alohida eksport qilinadi
 export const viewport: Viewport = {
   themeColor: "#16a34a",
   width: "device-width",
@@ -31,25 +30,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uz">
-      <head>
-        {/* 
-          Eslatma: Next.js metadatalarni o'zi avtomatik generatsiya qiladi.
-          Shuning uchun <head> ichidagi manifest va apple teglari bu yerda shart emas, 
-          chunki ular yuqorida `metadata` ob'ektida allaqachon bor.
-        */}
-      </head>
       <body>
         <QueryProvider>
+          <ServiceWorkerInit />
           {children}
           <OfflineIndicator />
           <Toaster
             position="top-right"
             toastOptions={{
-              style: {
-                borderRadius: "12px",
-                fontFamily: "Nunito Sans",
-                fontSize: "14px",
-              },
+              style: { borderRadius: "12px", fontSize: "14px" },
               success: {
                 style: {
                   background: "#f0fdf4",
