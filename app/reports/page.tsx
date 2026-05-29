@@ -8,7 +8,6 @@ import {
   Download,
   Printer,
   Calendar,
-  ChevronDown,
   Loader2,
   TrendingUp,
   Package,
@@ -150,10 +149,95 @@ export default function ReportsPage() {
     }, 300);
   }, [activeType, from, to, needsDates]);
 
-  // ─── PDF YUKLASH — print dialog orqali ───────────────────
-  const handleDownload = useCallback(() => {
-    handlePrint();
-  }, [handlePrint]);
+  // ─── PDF YUKLASH — haqiqiy PDF fayl ──────────────────────
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    if (!printRef.current) return;
+    setIsGenerating(true);
+    try {
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas"),
+      ]);
+
+      const title =
+        REPORT_TYPES.find((r) => r.id === activeType)?.label || "Hisobot";
+      const dateRange = needsDates
+        ? `${fmtDate(from)} — ${fmtDate(to)}`
+        : "Oxirgi 30 kun";
+
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 14;
+      const usableW = pageW - margin * 2;
+
+      // Header
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(title, margin, 14);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(100);
+      pdf.text(`Sana: ${dateRange}`, margin, 20);
+      pdf.setTextColor(0);
+
+      const headerH = 26;
+      const imgAspect = canvas.width / canvas.height;
+      const imgH = usableW / imgAspect;
+      const availH = pageH - headerH - margin;
+
+      if (imgH <= availH) {
+        pdf.addImage(imgData, "PNG", margin, headerH, usableW, imgH);
+      } else {
+        const totalPages = Math.ceil(imgH / availH);
+        for (let i = 0; i < totalPages; i++) {
+          if (i > 0) pdf.addPage();
+          const srcY = (i * availH * canvas.width) / usableW;
+          const srcH = Math.min(
+            (availH * canvas.width) / usableW,
+            canvas.height - srcY,
+          );
+          const sliceCanvas = document.createElement("canvas");
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = srcH;
+          const ctx = sliceCanvas.getContext("2d")!;
+          ctx.drawImage(canvas, 0, -srcY);
+          const sliceData = sliceCanvas.toDataURL("image/png");
+          const sliceH = (srcH * usableW) / canvas.width;
+          pdf.addImage(
+            sliceData,
+            "PNG",
+            margin,
+            i === 0 ? headerH : margin,
+            usableW,
+            sliceH,
+          );
+        }
+      }
+
+      const fileName = `${title.replace(/\s+/g, "_")}_${from || "hisobot"}.pdf`;
+      pdf.save(fileName);
+    } catch (err) {
+      console.error("PDF xatosi:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [activeType, from, to, needsDates]);
 
   const currentType = REPORT_TYPES.find((r) => r.id === activeType)!;
 
@@ -182,9 +266,15 @@ export default function ReportsPage() {
             </button>
             <button
               onClick={handleDownload}
-              className="btn-primary flex items-center gap-2 text-sm py-2 px-3"
+              disabled={isGenerating}
+              className="btn-primary flex items-center gap-2 text-sm py-2 px-3 disabled:opacity-60"
             >
-              <Download className="w-4 h-4" /> PDF saqlash
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {isGenerating ? "Tayyorlanmoqda..." : "PDF saqlash"}
             </button>
           </div>
         )}
