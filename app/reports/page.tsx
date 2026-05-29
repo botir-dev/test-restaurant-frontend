@@ -150,47 +150,10 @@ export default function ReportsPage() {
     }, 300);
   }, [activeType, from, to, needsDates]);
 
-  // ─── PDF YUKLASH ──────────────────────────────────────────
+  // ─── PDF YUKLASH — print dialog orqali ───────────────────
   const handleDownload = useCallback(() => {
-    const title =
-      REPORT_TYPES.find((r) => r.id === activeType)?.label || "Hisobot";
-    const dateRange = needsDates
-      ? `${fmtDate(from)} — ${fmtDate(to)}`
-      : "Oxirgi 30 kun";
-    const content = printRef.current?.innerHTML || "";
-
-    const html = `<!DOCTYPE html><html><head>
-      <meta charset="utf-8"/>
-      <title>${title}</title>
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 20px; }
-        h1 { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-        .subtitle { font-size: 12px; color: #666; margin-bottom: 16px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th { background: #f3f4f6; font-weight: bold; text-align: left; padding: 6px 8px; border: 1px solid #e5e7eb; font-size: 11px; }
-        td { padding: 5px 8px; border: 1px solid #e5e7eb; font-size: 11px; }
-        tr:nth-child(even) td { background: #f9fafb; }
-        .summary { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .summary-item { text-align: center; }
-        .summary-val { font-size: 16px; font-weight: bold; color: #166534; }
-        .summary-lbl { font-size: 10px; color: #666; }
-      </style>
-      </head><body>
-      <h1>${title}</h1>
-      <div class="subtitle">Sana: ${dateRange}</div>
-      ${content}
-      </body></html>`;
-
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${title.replace(/\s+/g, "_")}_${from}_${to}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [activeType, from, to, needsDates]);
+    handlePrint();
+  }, [handlePrint]);
 
   const currentType = REPORT_TYPES.find((r) => r.id === activeType)!;
 
@@ -221,7 +184,7 @@ export default function ReportsPage() {
               onClick={handleDownload}
               className="btn-primary flex items-center gap-2 text-sm py-2 px-3"
             >
-              <Download className="w-4 h-4" /> Yuklab olish
+              <Download className="w-4 h-4" /> PDF saqlash
             </button>
           </div>
         )}
