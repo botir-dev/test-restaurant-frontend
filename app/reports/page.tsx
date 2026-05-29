@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+// jspdf-autotable jsPDF.prototype ga qo'shiladi
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require("jspdf-autotable");
 import {
   FileText,
   Download,
@@ -221,7 +223,7 @@ export default function ReportsPage() {
             );
             startY += 8;
           }
-          autoTable(pdf, {
+          (pdf as any).autoTable({
             head,
             body,
             startY,
