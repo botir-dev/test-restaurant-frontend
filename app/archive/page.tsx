@@ -243,7 +243,9 @@ export default function ArchivePage() {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-green-600 text-lg">
-                    {formatPrice(item.grand_total || item.total_amount)}
+                    {formatPrice(
+                      Number(item.grand_total) || Number(item.total_amount),
+                    )}
                   </p>
                   <span
                     className={clsx(
@@ -279,12 +281,14 @@ export default function ArchivePage() {
               <div className="border-t border-gray-100 pt-2 mb-2 space-y-1">
                 <div className="flex justify-between text-xs text-gray-400">
                   <span>Mahsulotlar</span>
-                  <span>{formatPrice(item.total_amount)}</span>
+                  <span>{formatPrice(Number(item.total_amount))}</span>
                 </div>
-                {(item.service_fee_percent ?? 0) > 0 && (
+                {Number(item.service_fee_percent) > 0 && (
                   <div className="flex justify-between text-xs text-amber-600 font-semibold">
                     <span>Xizmat haqi ({item.service_fee_percent}%)</span>
-                    <span>+ {formatPrice(item.service_fee_amount)}</span>
+                    <span>
+                      + {formatPrice(Number(item.service_fee_amount))}
+                    </span>
                   </div>
                 )}
               </div>
