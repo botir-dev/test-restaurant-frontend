@@ -4,33 +4,48 @@ import type { NextRequest } from "next/server";
 const ROLE_ROUTES: Record<string, string[]> = {
   super_admin: ["/admin", "/restaurants", "/branches"],
   manager: [
-    "/dashboard", "/products", "/tables", "/orders",
-    "/archive", "/staff", "/settings", "/qr", "/earnings", "/cashier",
+    "/dashboard",
+    "/products",
+    "/tables",
+    "/orders",
+    "/archive",
+    "/staff",
+    "/settings",
+    "/qr",
+    "/earnings",
+    "/cashier",
+    "/reports",
   ],
-  waiter:       ["/tables", "/orders", "/earnings"],
-  cashier:      ["/cashier", "/orders", "/archive"],
-  storekeeper:  ["/products", "/archive"],
-  cook:         ["/kitchen", "/products"],
-  baker:        ["/kitchen", "/products"],
-  somsa_maker:  ["/kitchen", "/products"],
+  waiter: ["/tables", "/orders", "/earnings"],
+  cashier: ["/cashier", "/orders", "/archive"],
+  storekeeper: ["/products", "/archive"],
+  cook: ["/kitchen", "/products"],
+  baker: ["/kitchen", "/products"],
+  somsa_maker: ["/kitchen", "/products"],
   grill_master: ["/kitchen", "/products"],
   turkish_cook: ["/kitchen", "/products"],
-  bartender:    ["/kitchen", "/products"],
-  icecream_maker:["/kitchen", "/products"],
-  tea_master:   ["/kitchen", "/products"],
+  bartender: ["/kitchen", "/products"],
+  icecream_maker: ["/kitchen", "/products"],
+  tea_master: ["/kitchen", "/products"],
 };
 
 const ROLE_HOME: Record<string, string> = {
   super_admin: "/admin",
-  manager:     "/dashboard",
-  waiter:      "/tables",
-  cashier:     "/cashier",
+  manager: "/dashboard",
+  waiter: "/tables",
+  cashier: "/cashier",
   storekeeper: "/products",
 };
 
-const PUBLIC_PATHS = ["/login", "/qr", "/menu", "/manifest.json", "/sw.js", "/icons"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/qr",
+  "/menu",
+  "/manifest.json",
+  "/sw.js",
+  "/icons",
+];
 
-// ← "middleware" o'rniga "proxy" — Next.js yangi talabi
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -39,7 +54,7 @@ export function proxy(request: NextRequest) {
   }
 
   const isAuth = request.cookies.get("is_authenticated")?.value === "true";
-  const role   = request.cookies.get("user_role")?.value;
+  const role = request.cookies.get("user_role")?.value;
 
   if (!isAuth || !role) {
     const loginUrl = new URL("/login", request.url);

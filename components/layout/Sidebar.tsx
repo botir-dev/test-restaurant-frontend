@@ -24,6 +24,7 @@ import {
   Archive,
   Settings,
   Wallet,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
@@ -89,6 +90,7 @@ const navItems = [
   { href: "/staff", label: "Xodimlar", icon: Users, roles: ["manager"] },
   { href: "/qr", label: "QR Kodlar", icon: QrCode, roles: ["manager"] },
   { href: "/archive", label: "Arxiv", icon: Archive, roles: ["manager"] },
+  { href: "/reports", label: "Hisobotlar", icon: FileText, roles: ["manager"] },
   {
     href: "/admin",
     label: "Boshqaruv",
@@ -159,7 +161,6 @@ export default function Sidebar() {
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
         <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
           <UtensilsCrossed className="w-5 h-5 text-white" />
@@ -172,14 +173,12 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Rol badge */}
       <div className="px-4 py-3">
         <span className="badge bg-green-100 text-green-700">
           {user ? ROLE_LABELS[user.role] || user.role : ""}
         </span>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {visible.map((item) => {
           const active = pathname.startsWith(item.href);
@@ -203,7 +202,6 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Logout — SoundSettingsButton olib tashlandi */}
       <div className="p-3 border-t border-gray-100">
         <button
           onClick={handleLogout}
@@ -218,10 +216,8 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Global WebSocket — butun dastur uchun bitta ulanish, ding-dong sound */}
       <WebSocketProvider />
 
-      {/* Mobile topbar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center">
@@ -237,7 +233,6 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Mobile overlay */}
       {open && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div
@@ -256,7 +251,6 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-100 fixed h-full z-30">
         <NavContent />
       </aside>
