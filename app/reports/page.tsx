@@ -4,9 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import { jsPDF } from "jspdf";
-// jspdf-autotable jsPDF.prototype ga qo'shiladi
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require("jspdf-autotable");
 import {
   FileText,
   Download,
@@ -153,10 +150,10 @@ export default function ReportsPage() {
     }, 300);
   }, [activeType, from, to, needsDates]);
 
-  // ─── PDF YUKLASH — jsPDF autoTable ───────────────────────
+  // ─── PDF YUKLASH — sof jsPDF, hech qanday plugin yo'q ────
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleDownload = useCallback(async () => {
+  const handleDownload = useCallback(() => {
     setIsGenerating(true);
     try {
       const title =
@@ -170,94 +167,126 @@ export default function ReportsPage() {
         unit: "mm",
         format: "a4",
       });
-      const margin = 14;
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const marginX = 14;
+      const usableW = pageW - marginX * 2;
 
-      pdf.setFontSize(16);
+      // ── Sarlavha ──────────────────────────────────────────
+      pdf.setFontSize(15);
       pdf.setFont("helvetica", "bold");
-      pdf.text(title, margin, 14);
-      pdf.setFontSize(9);
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(title, marginX, 13);
+      pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(100);
-      pdf.text(`Sana: ${dateRange}`, margin, 20);
-      pdf.setTextColor(0);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text(`Sana: ${dateRange}`, marginX, 19);
+      pdf.setDrawColor(220, 220, 220);
+      pdf.line(marginX, 22, pageW - marginX, 22);
 
-      // DOM dan FAQAT matn o'qish — hech qanday stil/CSS tegmaslik
-      const extractTable = (table: Element) => {
-        const head: string[][] = [];
-        const body: string[][] = [];
-        const headRow = table.querySelector("thead tr");
-        if (headRow) {
-          head.push(
-            Array.from(headRow.querySelectorAll("th")).map(
-              (th) => th.textContent?.trim() ?? "",
-            ),
+      // ── DOM dan jadval ma'lumotlarini olish ───────────────
+      const extractTable = (el: Element) => {
+        const heads: string[] = [];
+        const rows: string[][] = [];
+        el.querySelectorAll("thead th").forEach((th) =>
+          heads.push(th.textContent?.trim() ?? ""),
+        );
+        el.querySelectorAll("tbody tr").forEach((tr) => {
+          const cells: string[] = [];
+          tr.querySelectorAll("td").forEach((td) =>
+            cells.push(td.textContent?.trim() ?? ""),
           );
-        }
-        table.querySelectorAll("tbody tr").forEach((tr) => {
-          body.push(
-            Array.from(tr.querySelectorAll("td")).map(
-              (td) => td.textContent?.trim() ?? "",
-            ),
-          );
+          if (cells.length) rows.push(cells);
         });
-        return { head, body };
+        return { heads, rows };
       };
 
+      // ── Jadval chizish funksiyasi ─────────────────────────
+      const drawTable = (
+        heads: string[],
+        rows: string[][],
+        startY: number,
+        sectionLabel?: string,
+      ): number => {
+        let y = startY;
+        const colCount = heads.length || (rows[0]?.length ?? 1);
+        const colW = usableW / colCount;
+        const rowH = 7;
+        const headH = 8;
+
+        if (sectionLabel) {
+          pdf.setFontSize(7);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(sectionLabel.toUpperCase(), marginX, y + 4);
+          y += 7;
+        }
+
+        // Thead
+        if (heads.length) {
+          pdf.setFillColor(243, 244, 246);
+          pdf.rect(marginX, y, usableW, headH, "F");
+          pdf.setFontSize(7);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(40, 40, 40);
+          heads.forEach((h, i) => {
+            pdf.text(
+              h.length > 18 ? h.slice(0, 17) + "…" : h,
+              marginX + i * colW + 2,
+              y + 5.5,
+            );
+          });
+          y += headH;
+        }
+
+        // Tbody
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        rows.forEach((row, ri) => {
+          // Sahifa to'lsa yangi sahifa
+          if (y + rowH > pageH - 10) {
+            pdf.addPage();
+            y = 14;
+          }
+          if (ri % 2 === 1) {
+            pdf.setFillColor(249, 250, 251);
+            pdf.rect(marginX, y, usableW, rowH, "F");
+          }
+          pdf.setTextColor(30, 30, 30);
+          row.forEach((cell, ci) => {
+            const txt = cell.length > 20 ? cell.slice(0, 19) + "…" : cell;
+            pdf.text(txt, marginX + ci * colW + 2, y + 5);
+          });
+          // Qator osti chizig'i
+          pdf.setDrawColor(235, 235, 235);
+          pdf.line(marginX, y + rowH, pageW - marginX, y + rowH);
+          y += rowH;
+        });
+
+        return y + 4;
+      };
+
+      // ── Jadvalni render qilish ────────────────────────────
       const tables = Array.from(
         printRef.current?.querySelectorAll("table") ?? [],
       );
-      let startY = 26;
+      let curY = 26;
 
       if (tables.length > 0) {
         for (const table of tables) {
-          const { head, body } = extractTable(table);
-          // p teglari orqali section sarlavhasini olish
+          const { heads, rows } = extractTable(table);
           const prevEl = table.previousElementSibling;
-          if (prevEl?.tagName === "P" && prevEl.textContent?.trim()) {
-            pdf.setFontSize(8);
-            pdf.setTextColor(120);
-            pdf.text(
-              prevEl.textContent.trim().toUpperCase(),
-              margin,
-              startY + 4,
-            );
-            startY += 8;
-          }
-          (pdf as any).autoTable({
-            head,
-            body,
-            startY,
-            margin: { left: margin, right: margin },
-            styles: {
-              fontSize: 8,
-              cellPadding: 2,
-              textColor: [20, 20, 20] as [number, number, number],
-              lineColor: [220, 220, 220] as [number, number, number],
-              lineWidth: 0.1,
-              font: "helvetica",
-              overflow: "linebreak",
-            },
-            headStyles: {
-              fillColor: [243, 244, 246] as [number, number, number],
-              textColor: [30, 30, 30] as [number, number, number],
-              fontStyle: "bold",
-              lineColor: [200, 200, 200] as [number, number, number],
-            },
-            alternateRowStyles: {
-              fillColor: [249, 250, 251] as [number, number, number],
-            },
-            bodyStyles: {
-              fillColor: [255, 255, 255] as [number, number, number],
-            },
-            theme: "plain",
-          });
-          startY = (pdf as any).lastAutoTable.finalY + 8;
+          const label =
+            prevEl?.tagName === "P"
+              ? (prevEl.textContent?.trim() ?? undefined)
+              : undefined;
+          curY = drawTable(heads, rows, curY, label);
         }
       } else {
         const allText = printRef.current?.innerText ?? "";
-        pdf.setFontSize(10);
-        pdf.setTextColor(20);
-        pdf.text(allText.slice(0, 2000), margin, 30, { maxWidth: 267 });
+        pdf.setFontSize(9);
+        pdf.setTextColor(30);
+        pdf.text(allText.slice(0, 1500), marginX, 28, { maxWidth: usableW });
       }
 
       const fileName = `${title.replace(/\s+/g, "_")}_${from || "hisobot"}.pdf`;
@@ -267,7 +296,7 @@ export default function ReportsPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [activeType, from, to, needsDates, data]);
+  }, [activeType, from, to, needsDates]);
 
   const currentType = REPORT_TYPES.find((r) => r.id === activeType)!;
 
