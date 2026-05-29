@@ -147,6 +147,9 @@ export interface ArchiveItem {
   guest_count: number;
   items: OrderItem[];
   total_amount: number;
+  service_fee_percent: number;
+  service_fee_amount: number;
+  grand_total: number;
   payment_type: PaymentType;
   is_from_qr: boolean;
   service_started: string;

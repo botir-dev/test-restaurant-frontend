@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderApi } from "@/lib/services";
+import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import {
   ORDER_STATUS_LABELS,
@@ -51,6 +52,14 @@ export default function OrdersPage() {
         statusFilter !== "all" ? { status: statusFilter } : undefined,
       ),
   });
+
+  // ─── Xizmat haqi foizini settings dan olish ───────────────
+  const { data: settingsData } = useQuery({
+    queryKey: ["branch-settings"],
+    queryFn: () => api.get("/manager/settings"),
+  });
+  const serviceFeePercent: number =
+    parseFloat(settingsData?.data?.data?.service_fee_percent) || 0;
 
   const allOrders: Order[] = data?.data?.data || [];
 
@@ -212,6 +221,12 @@ export default function OrdersPage() {
               (s, i) => s + i.price * i.quantity,
               0,
             );
+            // ─── Xizmat haqi hisoblash ─────────────────────
+            const serviceFeeAmount = Math.round(
+              (total * serviceFeePercent) / 100,
+            );
+            const grandTotal = total + serviceFeeAmount;
+
             return (
               <div key={order.id} className="card">
                 <div className="flex items-start justify-between mb-3">
@@ -261,13 +276,28 @@ export default function OrdersPage() {
                   ))}
                 </div>
 
-                <div className="flex justify-between items-center py-2 border-t border-gray-100 mb-3">
-                  <span className="text-sm text-gray-500">
-                    {order.guest_count} mehmon
-                  </span>
-                  <span className="font-bold text-green-600">
-                    {formatPrice(total)}
-                  </span>
+                {/* ─── Xizmat haqi breakdown + jami ───────── */}
+                <div className="border-t border-gray-100 pt-2 mb-3 space-y-1">
+                  {serviceFeePercent > 0 && (
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Mahsulotlar</span>
+                      <span>{formatPrice(total)}</span>
+                    </div>
+                  )}
+                  {serviceFeePercent > 0 && (
+                    <div className="flex justify-between text-xs text-amber-600 font-semibold">
+                      <span>Xizmat haqi ({serviceFeePercent}%)</span>
+                      <span>+ {formatPrice(serviceFeeAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">
+                      {order.guest_count} mehmon
+                    </span>
+                    <span className="font-bold text-green-600">
+                      {formatPrice(grandTotal)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex gap-2 flex-wrap">
