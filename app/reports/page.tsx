@@ -3,6 +3,8 @@ import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   FileText,
   Download,
@@ -149,44 +151,25 @@ export default function ReportsPage() {
     }, 300);
   }, [activeType, from, to, needsDates]);
 
-  // ─── PDF YUKLASH — haqiqiy PDF fayl ──────────────────────
+  // ─── PDF YUKLASH — jsPDF autoTable ───────────────────────
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleDownload = useCallback(async () => {
-    if (!printRef.current) return;
     setIsGenerating(true);
     try {
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import("jspdf"),
-        import("html2canvas"),
-      ]);
-
       const title =
         REPORT_TYPES.find((r) => r.id === activeType)?.label || "Hisobot";
       const dateRange = needsDates
         ? `${fmtDate(from)} — ${fmtDate(to)}`
         : "Oxirgi 30 kun";
 
-      const canvas = await html2canvas(printRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
         orientation: "landscape",
         unit: "mm",
         format: "a4",
       });
-
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
       const margin = 14;
-      const usableW = pageW - margin * 2;
 
-      // Header
       pdf.setFontSize(16);
       pdf.setFont("helvetica", "bold");
       pdf.text(title, margin, 14);
@@ -196,38 +179,83 @@ export default function ReportsPage() {
       pdf.text(`Sana: ${dateRange}`, margin, 20);
       pdf.setTextColor(0);
 
-      const headerH = 26;
-      const imgAspect = canvas.width / canvas.height;
-      const imgH = usableW / imgAspect;
-      const availH = pageH - headerH - margin;
-
-      if (imgH <= availH) {
-        pdf.addImage(imgData, "PNG", margin, headerH, usableW, imgH);
-      } else {
-        const totalPages = Math.ceil(imgH / availH);
-        for (let i = 0; i < totalPages; i++) {
-          if (i > 0) pdf.addPage();
-          const srcY = (i * availH * canvas.width) / usableW;
-          const srcH = Math.min(
-            (availH * canvas.width) / usableW,
-            canvas.height - srcY,
-          );
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = srcH;
-          const ctx = sliceCanvas.getContext("2d")!;
-          ctx.drawImage(canvas, 0, -srcY);
-          const sliceData = sliceCanvas.toDataURL("image/png");
-          const sliceH = (srcH * usableW) / canvas.width;
-          pdf.addImage(
-            sliceData,
-            "PNG",
-            margin,
-            i === 0 ? headerH : margin,
-            usableW,
-            sliceH,
+      // DOM dan FAQAT matn o'qish — hech qanday stil/CSS tegmaslik
+      const extractTable = (table: Element) => {
+        const head: string[][] = [];
+        const body: string[][] = [];
+        const headRow = table.querySelector("thead tr");
+        if (headRow) {
+          head.push(
+            Array.from(headRow.querySelectorAll("th")).map(
+              (th) => th.textContent?.trim() ?? "",
+            ),
           );
         }
+        table.querySelectorAll("tbody tr").forEach((tr) => {
+          body.push(
+            Array.from(tr.querySelectorAll("td")).map(
+              (td) => td.textContent?.trim() ?? "",
+            ),
+          );
+        });
+        return { head, body };
+      };
+
+      const tables = Array.from(
+        printRef.current?.querySelectorAll("table") ?? [],
+      );
+      let startY = 26;
+
+      if (tables.length > 0) {
+        for (const table of tables) {
+          const { head, body } = extractTable(table);
+          // p teglari orqali section sarlavhasini olish
+          const prevEl = table.previousElementSibling;
+          if (prevEl?.tagName === "P" && prevEl.textContent?.trim()) {
+            pdf.setFontSize(8);
+            pdf.setTextColor(120);
+            pdf.text(
+              prevEl.textContent.trim().toUpperCase(),
+              margin,
+              startY + 4,
+            );
+            startY += 8;
+          }
+          autoTable(pdf, {
+            head,
+            body,
+            startY,
+            margin: { left: margin, right: margin },
+            styles: {
+              fontSize: 8,
+              cellPadding: 2,
+              textColor: [20, 20, 20] as [number, number, number],
+              lineColor: [220, 220, 220] as [number, number, number],
+              lineWidth: 0.1,
+              font: "helvetica",
+              overflow: "linebreak",
+            },
+            headStyles: {
+              fillColor: [243, 244, 246] as [number, number, number],
+              textColor: [30, 30, 30] as [number, number, number],
+              fontStyle: "bold",
+              lineColor: [200, 200, 200] as [number, number, number],
+            },
+            alternateRowStyles: {
+              fillColor: [249, 250, 251] as [number, number, number],
+            },
+            bodyStyles: {
+              fillColor: [255, 255, 255] as [number, number, number],
+            },
+            theme: "plain",
+          });
+          startY = (pdf as any).lastAutoTable.finalY + 8;
+        }
+      } else {
+        const allText = printRef.current?.innerText ?? "";
+        pdf.setFontSize(10);
+        pdf.setTextColor(20);
+        pdf.text(allText.slice(0, 2000), margin, 30, { maxWidth: 267 });
       }
 
       const fileName = `${title.replace(/\s+/g, "_")}_${from || "hisobot"}.pdf`;
@@ -237,7 +265,7 @@ export default function ReportsPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [activeType, from, to, needsDates]);
+  }, [activeType, from, to, needsDates, data]);
 
   const currentType = REPORT_TYPES.find((r) => r.id === activeType)!;
 
