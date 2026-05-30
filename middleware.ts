@@ -46,7 +46,7 @@ const PUBLIC_PATHS = [
   "/icons",
 ];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/") {
