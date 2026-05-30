@@ -8,7 +8,10 @@ export default function Home() {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (!_hasHydrated) return;
+    if (!_hasHydrated) {
+      router.replace("/login");
+      return;
+    }
     if (!isAuthenticated) {
       router.replace("/login");
       return;
