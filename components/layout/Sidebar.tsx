@@ -27,37 +27,120 @@ import {
   Settings,
   Wallet,
   FileText,
+  Warehouse,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
 import WebSocketProvider from "@/components/providers/WebSocketProvider";
 
 const navItems = [
-  { href: "/dashboard", label: "Bosh sahifa", icon: LayoutDashboard, roles: ["manager", "super_admin"] },
-  { href: "/tables", label: "Stollar", icon: Table2, roles: ["waiter", "manager"] },
-  { href: "/orders", label: "Buyurtmalar", icon: ShoppingBag, roles: ["waiter", "manager", "cashier"] },
   {
-    href: "/kitchen", label: "Oshxona paneli", icon: ChefHat,
-    roles: ["cook", "baker", "somsa_maker", "grill_master", "turkish_cook", "bartender", "icecream_maker", "tea_master"],
+    href: "/dashboard",
+    label: "Bosh sahifa",
+    icon: LayoutDashboard,
+    roles: ["manager", "super_admin"],
   },
-  { href: "/cashier", label: "Kassa", icon: CreditCard, roles: ["cashier", "manager"] },
   {
-    href: "/products", label: "Mahsulotlar", icon: Package,
-    roles: ["manager", "storekeeper", "cook", "baker", "somsa_maker", "grill_master", "turkish_cook", "bartender", "icecream_maker", "tea_master"],
+    href: "/tables",
+    label: "Stollar",
+    icon: Table2,
+    roles: ["waiter", "manager"],
+  },
+  {
+    href: "/orders",
+    label: "Buyurtmalar",
+    icon: ShoppingBag,
+    roles: ["waiter", "manager", "cashier"],
+  },
+  {
+    href: "/kitchen",
+    label: "Oshxona paneli",
+    icon: ChefHat,
+    roles: [
+      "cook",
+      "baker",
+      "somsa_maker",
+      "grill_master",
+      "turkish_cook",
+      "bartender",
+      "icecream_maker",
+      "tea_master",
+    ],
+  },
+  {
+    href: "/cashier",
+    label: "Kassa",
+    icon: CreditCard,
+    roles: ["cashier", "manager"],
+  },
+  {
+    href: "/products",
+    label: "Mahsulotlar",
+    icon: Package,
+    roles: [
+      "manager",
+      "storekeeper",
+      "cook",
+      "baker",
+      "somsa_maker",
+      "grill_master",
+      "turkish_cook",
+      "bartender",
+      "icecream_maker",
+      "tea_master",
+    ],
+  },
+  {
+    href: "/inventory",
+    label: "Omborxona",
+    icon: Warehouse,
+    roles: ["manager", "storekeeper"],
+  },
+  {
+    href: "/menumanage",
+    label: "Menyu",
+    icon: BookOpen,
+    roles: ["manager", "storekeeper"],
   },
   { href: "/staff", label: "Xodimlar", icon: Users, roles: ["manager"] },
   { href: "/qr", label: "QR Kodlar", icon: QrCode, roles: ["manager"] },
   { href: "/archive", label: "Arxiv", icon: Archive, roles: ["manager"] },
   { href: "/reports", label: "Hisobotlar", icon: FileText, roles: ["manager"] },
-  { href: "/admin", label: "Boshqaruv", icon: Building2, roles: ["super_admin"] },
-  { href: "/settings", label: "Sozlamalar", icon: Settings, roles: ["manager"] },
-  { href: "/earnings", label: "Mening maoshim", icon: Wallet, roles: ["waiter"] },
+  {
+    href: "/admin",
+    label: "Boshqaruv",
+    icon: Building2,
+    roles: ["super_admin"],
+  },
+  {
+    href: "/settings",
+    label: "Sozlamalar",
+    icon: Settings,
+    roles: ["manager"],
+  },
+  {
+    href: "/earnings",
+    label: "Mening maoshim",
+    icon: Wallet,
+    roles: ["waiter"],
+  },
 ];
 
 const STANDARD_ROLES = [
-  "manager", "super_admin", "waiter", "cashier", "storekeeper",
-  "cook", "baker", "somsa_maker", "grill_master", "turkish_cook",
-  "bartender", "icecream_maker", "tea_master",
+  "manager",
+  "super_admin",
+  "waiter",
+  "cashier",
+  "storekeeper",
+  "cook",
+  "baker",
+  "somsa_maker",
+  "grill_master",
+  "turkish_cook",
+  "bartender",
+  "icecream_maker",
+  "tea_master",
 ];
 
 export default function Sidebar() {
@@ -99,15 +182,14 @@ export default function Sidebar() {
   const visible = navItems.filter((n) => {
     if (!user) return false;
     if (n.roles.includes(user.role)) return true;
-    if (isCustomRole && (n.href === "/kitchen" || n.href === "/products")) return true;
+    if (isCustomRole && (n.href === "/kitchen" || n.href === "/products"))
+      return true;
     return false;
   });
 
   // Logo komponenti
   const LogoIcon = ({ size = "md" }: { size?: "sm" | "md" }) => {
-    const cls = size === "sm"
-      ? "w-7 h-7 rounded-lg"
-      : "w-9 h-9 rounded-xl";
+    const cls = size === "sm" ? "w-7 h-7 rounded-lg" : "w-9 h-9 rounded-xl";
 
     if (logoUrl) {
       return (
@@ -128,8 +210,14 @@ export default function Sidebar() {
     }
 
     return (
-      <div className={`${cls} bg-green-600 flex items-center justify-center flex-shrink-0`}>
-        <UtensilsCrossed className={size === "sm" ? "w-4 h-4 text-white" : "w-5 h-5 text-white"} />
+      <div
+        className={`${cls} bg-green-600 flex items-center justify-center flex-shrink-0`}
+      >
+        <UtensilsCrossed
+          className={
+            size === "sm" ? "w-4 h-4 text-white" : "w-5 h-5 text-white"
+          }
+        />
       </div>
     );
   };
@@ -195,16 +283,24 @@ export default function Sidebar() {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <LogoIcon size="sm" />
-          <span className="font-bold text-gray-900 text-sm">{restaurantName}</span>
+          <span className="font-bold text-gray-900 text-sm">
+            {restaurantName}
+          </span>
         </div>
-        <button onClick={() => setOpen(true)} className="p-2 rounded-lg hover:bg-gray-100">
+        <button
+          onClick={() => setOpen(true)}
+          className="p-2 rounded-lg hover:bg-gray-100"
+        >
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
       </div>
 
       {open && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setOpen(false)}
+          />
           <div className="relative w-64 bg-white h-full shadow-2xl animate-slideUp">
             <button
               onClick={() => setOpen(false)}

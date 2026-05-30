@@ -110,6 +110,9 @@ export const productApi = {
     branch_id: string,
     params?: { type?: string; page?: number; limit?: number },
   ) => api.get(`/public/menu/${branch_id}`, { params }),
+
+  getPublicMenuItems: (branch_id: string, params?: { type?: string }) =>
+    api.get(`/public/menu-items/${branch_id}`, { params }),
 };
 
 // ─── TABLES ─────────────────────────────────────────────
@@ -208,4 +211,67 @@ export const customProductTypeApi = {
   create: (data: { key: string; label: string }) =>
     api.post("/manager/custom-product-types", data),
   delete: (id: string) => api.delete(`/manager/custom-product-types/${id}`),
+};
+
+// ─── INVENTORY ────────────────────────────────────────────────
+export const inventoryApi = {
+  getAll: (params?: { search?: string; page?: number; limit?: number }) =>
+    api.get("/inventory", { params }),
+  create: (data: {
+    name: string;
+    unit: string;
+    custom_unit?: string;
+    quantity?: number;
+    min_quantity?: number;
+    image_url?: string;
+  }) => api.post("/inventory", data),
+  update: (
+    id: string,
+    data: {
+      name?: string;
+      unit?: string;
+      custom_unit?: string;
+      quantity?: number;
+      min_quantity?: number;
+      image_url?: string;
+    },
+  ) => api.put(`/inventory/${id}`, data),
+  addStock: (id: string, amount: number) =>
+    api.patch(`/inventory/${id}/add`, { amount }),
+  delete: (id: string) => api.delete(`/inventory/${id}`),
+  getLogs: (params?: { item_id?: string; page?: number; limit?: number }) =>
+    api.get("/inventory/logs", { params }),
+};
+
+// ─── MENU ──────────────────────────────────────────────────────
+export const menuApi = {
+  getAll: (params?: {
+    type?: string;
+    is_available?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get("/menu", { params }),
+  create: (data: {
+    name: string;
+    price: number;
+    type: string;
+    image_url?: string;
+    is_available?: boolean;
+    recipe?: { inventory_item_id: string; quantity: number }[];
+  }) => api.post("/menu", data),
+  update: (
+    id: string,
+    data: {
+      name?: string;
+      price?: number;
+      type?: string;
+      image_url?: string;
+      is_available?: boolean;
+      recipe?: { inventory_item_id: string; quantity: number }[];
+    },
+  ) => api.put(`/menu/${id}`, data),
+  delete: (id: string) => api.delete(`/menu/${id}`),
+  toggleAvailability: (id: string, is_available: boolean) =>
+    api.patch(`/menu/${id}/availability`, { is_available }),
 };

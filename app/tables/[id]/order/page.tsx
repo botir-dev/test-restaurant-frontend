@@ -2,11 +2,11 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { productApi, tableApi } from "@/lib/services";
+import { menuApi, tableApi } from "@/lib/services";
 import { createOrderOffline } from "@/lib/offline-actions";
 import { useAuthStore } from "@/store/auth.store";
 import { PRODUCT_TYPE_LABELS, formatPrice } from "@/lib/utils";
-import type { Product, ProductType } from "@/types";
+import type { ProductType } from "@/types";
 import toast from "react-hot-toast";
 import {
   ArrowLeft,
@@ -19,6 +19,15 @@ import {
   WifiOff,
 } from "lucide-react";
 import clsx from "clsx";
+
+// Menyudan keladigan oddiy item turi (faqat nom, narx, rasm)
+interface SimpleMenuItem {
+  id: string;
+  name: string;
+  price: number;
+  type: string;
+  image_url?: string | null;
+}
 
 export default function NewOrderPage() {
   const { id: tableId } = useParams<{ id: string }>();
@@ -33,11 +42,11 @@ export default function NewOrderPage() {
 
   const isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
 
-  const { data: productsData, isLoading } = useQuery({
-    queryKey: ["products", "available"],
-    queryFn: () => productApi.getAll({ is_available: true, limit: 100 }),
-    staleTime: 5 * 60 * 1000, // 5 daqiqa — offline da eski ma'lumot ishlaydi
-    gcTime: 60 * 60 * 1000, // 1 soat cache da saqlanadi
+  const { data: menuData, isLoading } = useQuery({
+    queryKey: ["menu-items", "available"],
+    queryFn: () => menuApi.getAll({ is_available: true, limit: 200 }),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   const { data: tablesData } = useQuery({
@@ -48,10 +57,21 @@ export default function NewOrderPage() {
   });
 
   const table = tablesData?.data?.data?.find((t: any) => t.id === tableId);
-  const products: Product[] = productsData?.data?.data || [];
-  const types = ["all", ...Array.from(new Set(products.map((p) => p.type)))];
 
-  const filtered = products.filter((p) => {
+  // Faqat id, name, price, type, image_url — boshqa narsalar kerak emas
+  const items: SimpleMenuItem[] = (menuData?.data?.data || []).map(
+    (m: any) => ({
+      id: m.id,
+      name: m.name,
+      price: m.price,
+      type: m.type,
+      image_url: m.image_url,
+    }),
+  );
+
+  const types = ["all", ...Array.from(new Set(items.map((p) => p.type)))];
+
+  const filtered = items.filter((p) => {
     const matchType = activeType === "all" || p.type === activeType;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
@@ -59,16 +79,13 @@ export default function NewOrderPage() {
 
   const cartItems = Object.entries(cart).filter(([, qty]) => qty > 0);
   const totalAmount = cartItems.reduce((sum, [pid, qty]) => {
-    const p = products.find((p) => p.id === pid);
+    const p = items.find((p) => p.id === pid);
     return sum + (p?.price || 0) * qty;
   }, 0);
 
   const MAX_QTY = 99;
   const addToCart = (id: string) =>
-    setCart((p) => ({
-      ...p,
-      [id]: Math.min((p[id] || 0) + 1, MAX_QTY),
-    }));
+    setCart((p) => ({ ...p, [id]: Math.min((p[id] || 0) + 1, MAX_QTY) }));
   const removeFromCart = (id: string) =>
     setCart((p) => {
       const n = { ...p, [id]: Math.max(0, (p[id] || 0) - 1) };
@@ -137,7 +154,7 @@ export default function NewOrderPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           className="input pl-9"
-          placeholder="Mahsulot qidirish..."
+          placeholder="Taom qidirish..."
           value={search}
           maxLength={100}
           onChange={(e) => setSearch(e.target.value)}
@@ -172,12 +189,12 @@ export default function NewOrderPage() {
         ))}
       </div>
 
-      {/* Products grid */}
+      {/* Menu grid */}
       {isLoading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-green-600" />
         </div>
-      ) : products.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="text-center py-16">
           <WifiOff className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-semibold">Menyu yuklanmadi</p>
@@ -187,21 +204,21 @@ export default function NewOrderPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {filtered.map((product) => {
-            const qty = cart[product.id] || 0;
+          {filtered.map((item) => {
+            const qty = cart[item.id] || 0;
             return (
               <div
-                key={product.id}
+                key={item.id}
                 className={clsx(
                   "bg-white rounded-2xl border-2 p-3 transition-all",
                   qty > 0 ? "border-green-400" : "border-gray-100",
                 )}
               >
                 <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden">
-                  {product.image_url ? (
+                  {item.image_url ? (
                     <img
-                      src={product.image_url}
-                      alt={product.name}
+                      src={item.image_url}
+                      alt={item.name}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
@@ -215,15 +232,15 @@ export default function NewOrderPage() {
                   )}
                 </div>
                 <p className="text-sm font-semibold text-gray-800 truncate">
-                  {product.name}
+                  {item.name}
                 </p>
                 <p className="text-xs text-green-600 font-bold mt-0.5">
-                  {formatPrice(product.price)}
+                  {formatPrice(item.price)}
                 </p>
                 <div className="flex items-center justify-between mt-2">
                   {qty === 0 ? (
                     <button
-                      onClick={() => addToCart(product.id)}
+                      onClick={() => addToCart(item.id)}
                       className="flex items-center gap-1 w-full justify-center bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold py-1.5 rounded-lg transition-all"
                     >
                       <Plus className="w-3.5 h-3.5" /> Qo'shish
@@ -231,7 +248,7 @@ export default function NewOrderPage() {
                   ) : (
                     <div className="flex items-center justify-between w-full">
                       <button
-                        onClick={() => removeFromCart(product.id)}
+                        onClick={() => removeFromCart(item.id)}
                         className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all"
                       >
                         <Minus className="w-3.5 h-3.5 text-red-600" />
@@ -240,7 +257,7 @@ export default function NewOrderPage() {
                         {qty}
                       </span>
                       <button
-                        onClick={() => addToCart(product.id)}
+                        onClick={() => addToCart(item.id)}
                         className="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 flex items-center justify-center transition-all"
                       >
                         <Plus className="w-3.5 h-3.5 text-green-600" />
@@ -261,7 +278,7 @@ export default function NewOrderPage() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="font-bold text-gray-900">
-                  {cartItems.length} xil mahsulot
+                  {cartItems.length} xil taom
                 </p>
                 <p className="text-xs text-gray-500">
                   {cartItems.reduce((s, [, q]) => s + q, 0)} ta jami

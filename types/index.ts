@@ -185,3 +185,38 @@ export interface CustomProductType {
   label: string;
   created_at: string;
 }
+
+export type InventoryUnit = "kg" | "L" | "dona" | "g" | "ml" | "custom";
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  unit: InventoryUnit;
+  custom_unit?: string | null;
+  quantity: number;
+  min_quantity: number;
+  image_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecipeLine {
+  id?: string;
+  inventory_item_id: string;
+  inventory_name?: string;
+  inventory_unit?: string;
+  inventory_custom_unit?: string | null;
+  quantity: number;
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  type: string;
+  is_available: boolean;
+  image_url?: string | null;
+  recipe: RecipeLine[];
+  created_at: string;
+  updated_at: string;
+}
