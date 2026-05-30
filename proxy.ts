@@ -49,6 +49,16 @@ const PUBLIC_PATHS = [
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/") {
+    const isAuth = request.cookies.get("is_authenticated")?.value === "true";
+    const role = request.cookies.get("user_role")?.value;
+    if (isAuth && role) {
+      const home = ROLE_HOME[role] ?? "/kitchen";
+      return NextResponse.redirect(new URL(home, request.url));
+    }
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
