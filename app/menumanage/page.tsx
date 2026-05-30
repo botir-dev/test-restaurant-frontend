@@ -48,7 +48,7 @@ function IngredientSelect({
 
   const selected = inventoryItems.find((i) => i.id === value);
   const filtered = inventoryItems.filter((i) =>
-    i.name.toLowerCase().includes(search.toLowerCase()),
+    i.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const label = selected
@@ -59,13 +59,10 @@ function IngredientSelect({
     <div className="relative flex-1">
       <button
         type="button"
-        onClick={() => {
-          setOpen((o) => !o);
-          setSearch("");
-        }}
+        onClick={() => { setOpen((o) => !o); setSearch(""); }}
         className={clsx(
           "input w-full text-sm py-1.5 text-left flex items-center justify-between gap-1",
-          !selected && "text-gray-400",
+          !selected && "text-gray-400"
         )}
       >
         <span className="truncate">{label}</span>
@@ -94,13 +91,10 @@ function IngredientSelect({
                 )}
               </div>
             </div>
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-64 overflow-y-auto">
               <button
                 type="button"
-                onClick={() => {
-                  onChange("");
-                  setOpen(false);
-                }}
+                onClick={() => { onChange(""); setOpen(false); }}
                 className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50"
               >
                 -- Ingredient tanlang --
@@ -112,15 +106,10 @@ function IngredientSelect({
                   <button
                     key={inv.id}
                     type="button"
-                    onClick={() => {
-                      onChange(inv.id);
-                      setOpen(false);
-                      setSearch("");
-                    }}
+                    onClick={() => { onChange(inv.id); setOpen(false); setSearch(""); }}
                     className={clsx(
                       "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between",
-                      inv.id === value &&
-                        "bg-green-50 text-green-700 font-medium",
+                      inv.id === value && "bg-green-50 text-green-700 font-medium"
                     )}
                   >
                     <span>{inv.name}</span>
@@ -260,15 +249,24 @@ function MenuModal({
 
   const addRecipeLine = () => setRecipe((p) => [...p, { inv_id: "", qty: "" }]);
 
-  const updateLine = (idx: number, field: "inv_id" | "qty", val: string) =>
+  const updateLine = (idx: number, field: "inv_id" | "qty", val: string) => {
+    if (field === "inv_id" && val) {
+      // Duplicate tekshirish
+      const alreadyUsed = recipe.some((r, i) => i !== idx && r.inv_id === val);
+      if (alreadyUsed) {
+        toast.error("Bu ingredient allaqachon qo'shilgan");
+        return;
+      }
+    }
     setRecipe((p) => p.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
+  };
 
   const removeLine = (idx: number) =>
     setRecipe((p) => p.filter((_, i) => i !== idx));
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg animate-slideUp max-h-[93vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-lg animate-slideUp max-h-[95vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white">
           <h3 className="font-bold text-gray-900">
             {item ? "Menyuni tahrirlash" : "Menyu mahsuloti qo'shish"}
@@ -757,24 +755,56 @@ export default function MenuManagePage() {
                         r.inventory_unit === "custom"
                           ? r.inventory_custom_unit || "?"
                           : r.inventory_unit || "";
+                      const qty = parseFloat(r.quantity as any);
+                      const costPerUnit = parseFloat((r as any).cost_price as any) || 0;
+                      const lineCost = qty * costPerUnit;
                       return (
                         <div
                           key={idx}
                           className="flex items-center justify-between text-sm"
                         >
-                          <span className="text-gray-700">
+                          <span className="text-gray-700 flex-1">
                             {r.inventory_name}
                           </span>
-                          <span className="font-semibold text-orange-600">
-                            {parseFloat(r.quantity as any) % 1 === 0
-                              ? parseFloat(r.quantity as any)
-                              : parseFloat(r.quantity as any).toFixed(3)}{" "}
-                            {unit}
+                          {user?.role === "manager" && costPerUnit > 0 && (
+                            <span className="text-xs text-gray-400 mx-3 whitespace-nowrap">
+                              {costPerUnit.toLocaleString("uz-UZ")} so'm/{unit}
+                            </span>
+                          )}
+                          <span className="font-semibold text-orange-600 whitespace-nowrap">
+                            {qty % 1 === 0 ? qty : qty.toFixed(3)} {unit}
                           </span>
+                          {user?.role === "manager" && (
+                            <span className="ml-3 text-xs font-semibold text-blue-600 whitespace-nowrap w-24 text-right">
+                              {costPerUnit > 0
+                                ? lineCost.toLocaleString("uz-UZ") + " so'm"
+                                : "—"}
+                            </span>
+                          )}
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* Jami tannarx — faqat manager */}
+                  {user?.role === "manager" && (() => {
+                    const totalCost = item.recipe.reduce((sum, r) => {
+                      const qty = parseFloat(r.quantity as any);
+                      const cp = parseFloat((r as any).cost_price as any) || 0;
+                      return sum + qty * cp;
+                    }, 0);
+                    if (totalCost <= 0) return null;
+                    return (
+                      <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-500">
+                          Tannarx (1 porsiya)
+                        </span>
+                        <span className="text-sm font-bold text-green-700">
+                          {totalCost.toLocaleString("uz-UZ")} so'm
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
