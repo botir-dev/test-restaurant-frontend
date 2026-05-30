@@ -5,19 +5,15 @@ import { useAuthStore } from "@/store/auth.store";
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, _hasHydrated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (!_hasHydrated) {
-      router.replace("/login");
-      return;
-    }
     if (!isAuthenticated) {
       router.replace("/login");
       return;
     }
     router.replace("/dashboard");
-  }, [isAuthenticated, _hasHydrated, router]);
+  }, [isAuthenticated, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#fafaf8]">

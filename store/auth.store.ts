@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User, Role, ProductType } from "@/types";
 
-// ─── Cookie yordamchi funksiyalar ────────────────────────────
 const setCookie = (name: string, value: string, days = 7) => {
   if (typeof document === "undefined") return;
   const expires = new Date(Date.now() + days * 864e5).toUTCString();
@@ -18,8 +17,6 @@ const deleteCookie = (name: string) => {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  _hasHydrated: boolean;
-  setHasHydrated: (val: boolean) => void;
   setUser: (user: User) => void;
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
@@ -42,19 +39,12 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      _hasHydrated: false,
-
-      setHasHydrated: (val) => set({ _hasHydrated: val }),
 
       setUser: (user) => {
-        // Token lар localStorage + cookie ga saqlanadi
         localStorage.setItem("access_token", user.access_token);
         localStorage.setItem("refresh_token", user.refresh_token);
-
-        // Middleware uchun cookie ga role yozamiz
         setCookie("user_role", user.role, 7);
         setCookie("is_authenticated", "true", 7);
-
         set({ user, isAuthenticated: true });
       },
 
@@ -101,9 +91,6 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
-      },
     },
   ),
 );

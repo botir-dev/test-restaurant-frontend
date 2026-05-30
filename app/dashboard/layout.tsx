@@ -10,15 +10,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, _hasHydrated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (!_hasHydrated) return; // hydration tugaguncha kutamiz
     if (!isAuthenticated) router.replace("/login");
-  }, [isAuthenticated, _hasHydrated, router]);
+  }, [isAuthenticated, router]);
 
-  // hydration tugamagan yoki authenticated emas — spinner ko'rsat
-  if (!_hasHydrated || !isAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafaf8]">
         <div className="w-8 h-8 border-[3px] border-green-600 border-t-transparent rounded-full animate-spin" />
