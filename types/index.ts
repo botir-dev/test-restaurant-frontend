@@ -73,6 +73,7 @@ export interface Staff {
   role: Role;
   extra_permissions: ProductType[];
   is_active: boolean;
+  monthly_salary?: number | null;
   created_at: string;
 }
 

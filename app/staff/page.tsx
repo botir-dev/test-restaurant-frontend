@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { staffApi, customRoleApi, customProductTypeApi } from "@/lib/services";
+import { useAuthStore } from "@/store/auth.store";
 import { ROLE_LABELS, PRODUCT_TYPE_LABELS } from "@/lib/utils";
 import type { Staff, Role, ProductType } from "@/types";
 import toast from "react-hot-toast";
@@ -360,7 +361,9 @@ function StaffDetailModal({
     password: "",
     role: staff.role as string,
     extra_permissions: safeParsePermissions(staff.extra_permissions),
+    monthly_salary: staff.monthly_salary ? String(staff.monthly_salary) : "",
   });
+  const isManager = staff.role === "manager";
   const [showPass, setShowPass] = useState(false);
 
   const togglePerm = (type: string) => {
@@ -379,6 +382,9 @@ function StaffDetailModal({
         phone: form.phone,
         role: form.role as Role,
         extra_permissions: form.extra_permissions as ProductType[],
+        monthly_salary: form.monthly_salary
+          ? parseFloat(form.monthly_salary)
+          : null,
         ...(form.password ? { password: form.password } : {}),
       }),
     onSuccess: () => {
@@ -480,32 +486,50 @@ function StaffDetailModal({
               onToggle={togglePerm}
             />
           </div>
-          {/* Hozirgi holat */}
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs font-semibold text-gray-500 mb-2">
-              Hozirgi holat
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <span
-                className={clsx(
-                  "badge text-xs",
-                  !ROLE_LABELS[staff.role as Role]
-                    ? "bg-purple-100 text-purple-700"
-                    : "bg-green-100 text-green-700",
-                )}
-              >
-                {allRoleLabels[staff.role] || staff.role}
-              </span>
-              {safeParsePermissions(staff.extra_permissions).map((p) => (
-                <span
-                  key={p}
-                  className="badge bg-blue-50 text-blue-600 text-xs"
-                >
-                  {allTypeLabels[p] || p}
-                </span>
-              ))}
-            </div>
+          {/* Oylik maosh */}
+          <div>
+            <label className="label">Oylik maosh (so'm)</label>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              step={1000}
+              placeholder="3 000 000"
+              value={form.monthly_salary}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, monthly_salary: e.target.value }))
+              }
+            />
           </div>
+
+          {/* Hozirgi holat — faqat manager emas xodimlar uchun */}
+          {!isManager && (
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs font-semibold text-gray-500 mb-2">
+                Hozirgi holat
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <span
+                  className={clsx(
+                    "badge text-xs",
+                    !ROLE_LABELS[staff.role as Role]
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-green-100 text-green-700",
+                  )}
+                >
+                  {allRoleLabels[staff.role] || staff.role}
+                </span>
+                {safeParsePermissions(staff.extra_permissions).map((p) => (
+                  <span
+                    key={p}
+                    className="badge bg-blue-50 text-blue-600 text-xs"
+                  >
+                    {allTypeLabels[p] || p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex gap-2 pt-1">
             <button
               onClick={onClose}
@@ -714,6 +738,7 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
 
 export default function StaffPage() {
   const qc = useQueryClient();
+  const { user } = useAuthStore();
   const [showNewModal, setShowNewModal] = useState(false);
   const [editStaff, setEditStaff] = useState<Staff | null>(null);
   const [showRoleManager, setShowRoleManager] = useState(false);
@@ -843,15 +868,17 @@ export default function StaffPage() {
                       >
                         <Pencil className="w-3.5 h-3.5 text-gray-600" />
                       </button>
-                      <button
-                        onClick={() => {
-                          if (confirm("O'chirishni tasdiqlaysizmi?"))
-                            deleteMutation.mutate(s.id);
-                        }}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                      </button>
+                      {s.role !== "manager" && s.id !== user?.user_id && (
+                        <button
+                          onClick={() => {
+                            if (confirm("O'chirishni tasdiqlaysizmi?"))
+                              deleteMutation.mutate(s.id);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -885,11 +912,19 @@ export default function StaffPage() {
                     ))}
                   </div>
 
-                  {s.phone && (
-                    <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                      <Phone className="w-3 h-3" /> {s.phone}
-                    </p>
-                  )}
+                  <div className="flex items-center justify-between mt-1">
+                    {s.phone && (
+                      <p className="text-xs text-gray-400 flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {s.phone}
+                      </p>
+                    )}
+                    {s.monthly_salary != null && s.monthly_salary > 0 && (
+                      <p className="text-xs font-semibold text-green-700 ml-auto">
+                        {Number(s.monthly_salary).toLocaleString("uz-UZ")}{" "}
+                        so'm/oy
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })}
