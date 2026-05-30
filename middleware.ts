@@ -5,7 +5,6 @@ const ROLE_ROUTES: Record<string, string[]> = {
   super_admin: ["/admin", "/restaurants", "/branches"],
   manager: [
     "/dashboard",
-    "/products",
     "/tables",
     "/orders",
     "/archive",
@@ -15,18 +14,20 @@ const ROLE_ROUTES: Record<string, string[]> = {
     "/earnings",
     "/cashier",
     "/reports",
+    "/inventory",
+    "/menumanage",
   ],
   waiter: ["/tables", "/orders", "/earnings"],
   cashier: ["/cashier", "/orders", "/archive"],
-  storekeeper: ["/products", "/archive"],
-  cook: ["/kitchen", "/products"],
-  baker: ["/kitchen", "/products"],
-  somsa_maker: ["/kitchen", "/products"],
-  grill_master: ["/kitchen", "/products"],
-  turkish_cook: ["/kitchen", "/products"],
-  bartender: ["/kitchen", "/products"],
-  icecream_maker: ["/kitchen", "/products"],
-  tea_master: ["/kitchen", "/products"],
+  storekeeper: ["/inventory", "/menumanage", "/archive"],
+  cook: ["/kitchen", "/menumanage"],
+  baker: ["/kitchen", "/menumanage"],
+  somsa_maker: ["/kitchen", "/menumanage"],
+  grill_master: ["/kitchen", "/menumanage"],
+  turkish_cook: ["/kitchen", "/menumanage"],
+  bartender: ["/kitchen", "/menumanage"],
+  icecream_maker: ["/kitchen", "/menumanage"],
+  tea_master: ["/kitchen", "/menumanage"],
 };
 
 const ROLE_HOME: Record<string, string> = {
@@ -34,7 +35,7 @@ const ROLE_HOME: Record<string, string> = {
   manager: "/dashboard",
   waiter: "/tables",
   cashier: "/cashier",
-  storekeeper: "/products",
+  storekeeper: "/inventory",
 };
 
 const PUBLIC_PATHS = [
@@ -72,7 +73,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const allowedRoutes = ROLE_ROUTES[role] ?? ["/kitchen", "/products"];
+  const allowedRoutes = ROLE_ROUTES[role] ?? ["/kitchen", "/menumanage"];
   const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
 
   if (!hasAccess) {

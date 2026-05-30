@@ -75,9 +75,15 @@ const navItems = [
     roles: ["cashier", "manager"],
   },
   {
-    href: "/products",
-    label: "Mahsulotlar",
-    icon: Package,
+    href: "/inventory",
+    label: "Omborxona",
+    icon: Warehouse,
+    roles: ["manager", "storekeeper"],
+  },
+  {
+    href: "/menumanage",
+    label: "Menyu",
+    icon: BookOpen,
     roles: [
       "manager",
       "storekeeper",
@@ -90,18 +96,6 @@ const navItems = [
       "icecream_maker",
       "tea_master",
     ],
-  },
-  {
-    href: "/inventory",
-    label: "Omborxona",
-    icon: Warehouse,
-    roles: ["manager", "storekeeper"],
-  },
-  {
-    href: "/menumanage",
-    label: "Menyu",
-    icon: BookOpen,
-    roles: ["manager", "storekeeper"],
   },
   { href: "/staff", label: "Xodimlar", icon: Users, roles: ["manager"] },
   { href: "/qr", label: "QR Kodlar", icon: QrCode, roles: ["manager"] },
@@ -182,7 +176,7 @@ export default function Sidebar() {
   const visible = navItems.filter((n) => {
     if (!user) return false;
     if (n.roles.includes(user.role)) return true;
-    if (isCustomRole && (n.href === "/kitchen" || n.href === "/products"))
+    if (isCustomRole && (n.href === "/kitchen" || n.href === "/menumanage"))
       return true;
     return false;
   });
