@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { productApi, orderApi } from "@/lib/services";
@@ -15,129 +15,8 @@ import {
   ChevronRight,
   X,
   User,
-  Sparkles,
 } from "lucide-react";
 import clsx from "clsx";
-
-// ─── Kombinatorik juftlik jadvali ──────────────────────────────────────────
-// Har bir mahsulot turiga mos keladigan tavsiya tur(lar)i
-// "drink" va "other" — tavsiya BERILMAYDI (suv, boshqa narsalar bilan juftlab bo'lmaydi)
-const PAIR_MAP: Partial<Record<string, string[]>> = {
-  food: ["tea", "bread", "somsa", "icecream"],
-  grill: ["tea", "bread", "somsa"],
-  turkish: ["tea", "bread"],
-  somsa: ["tea", "bread"],
-  bread: ["tea", "food", "somsa"],
-  icecream: ["tea"],
-  tea: ["food", "bread", "somsa", "grill", "turkish", "icecream"],
-  // drink → yo'q (ichimlik suvi, sharbat nima bilan ketishini aniqlab bo'lmaydi)
-  // other → yo'q
-};
-
-/**
- * Kombinatorik tavsiya algoritmi:
- * 1. Qo'shilgan mahsulot turini oladi
- * 2. PAIR_MAP dan juft turlarni qidiradi
- * 3. Savatchada yo'q, mavjud mahsulotlar ichidan eng mos birini tanlaydi
- * 4. Bir xil turdan savatda allaqachon bor bo'lsa — o'sha turni o'tkazib yuboradi
- */
-function findRecommendation(
-  addedProduct: Product,
-  allProducts: Product[],
-  cart: Record<string, number>,
-): Product | null {
-  const pairTypes = PAIR_MAP[addedProduct.type];
-  if (!pairTypes || pairTypes.length === 0) return null;
-
-  const cartProductIds = new Set(
-    Object.keys(cart).filter((id) => (cart[id] || 0) > 0),
-  );
-  const cartTypes = new Set(
-    allProducts.filter((p) => cartProductIds.has(p.id)).map((p) => p.type),
-  );
-
-  // Savatda yo'q turlarni ustun ko'rish (prioritet tartibida)
-  const priorityTypes = pairTypes.filter((t) => !cartTypes.has(t));
-  const searchTypes = priorityTypes.length > 0 ? priorityTypes : pairTypes;
-
-  // Har bir tur uchun mavjud va savatda yo'q mahsulotlarni topish
-  for (const pairType of searchTypes) {
-    const candidates = allProducts.filter(
-      (p) =>
-        p.type === pairType &&
-        !cartProductIds.has(p.id) &&
-        p.id !== addedProduct.id &&
-        p.is_available !== false,
-    );
-    if (candidates.length > 0) {
-      // Narxi bo'yicha saralangan birinchisini qaytarish (arzon → yuqori konversiya)
-      candidates.sort((a, b) => a.price - b.price);
-      return candidates[0];
-    }
-  }
-  return null;
-}
-
-// ─── Custom toast komponenti ───────────────────────────────────────────────
-function SuggestionToast({
-  toastId,
-  selectedName,
-  recommendedProduct,
-  onYes,
-  onNo,
-}: {
-  toastId: string;
-  selectedName: string;
-  recommendedProduct: Product;
-  onYes: () => void;
-  onNo: () => void;
-}) {
-  return (
-    <div
-      className="bg-white rounded-2xl shadow-2xl border border-green-100 overflow-hidden"
-      style={{ width: 320, maxWidth: "calc(100vw - 32px)" }}
-    >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-3 flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-white/80 flex-shrink-0" />
-        <p className="text-white text-xs font-bold tracking-wide uppercase">
-          Tavsiya
-        </p>
-      </div>
-
-      {/* Content */}
-      <div className="px-4 pt-3 pb-2">
-        <p className="text-gray-800 text-sm font-semibold leading-snug">
-          <span className="text-green-700">"{selectedName}"</span> bilan{" "}
-          <span className="text-green-700">"{recommendedProduct.name}"</span>{" "}
-          juda ajoyib ketadi! Istaysizmi?
-        </p>
-        <p className="text-green-600 font-bold text-sm mt-1.5">
-          atigi —{" "}
-          <span className="text-lg">
-            {formatPrice(recommendedProduct.price)}
-          </span>
-        </p>
-      </div>
-
-      {/* Buttons */}
-      <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-        <button
-          onClick={onNo}
-          className="py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all active:scale-95"
-        >
-          Yo'q
-        </button>
-        <button
-          onClick={onYes}
-          className="py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition-all active:scale-95 shadow-sm"
-        >
-          Ha, qo'shish ✓
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ─── Asosiy menyu komponenti ───────────────────────────────────────────────
 function MenuContent() {
@@ -149,11 +28,6 @@ function MenuContent() {
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [activeType, setActiveType] = useState("all");
   const [step, setStep] = useState<"menu" | "waiter" | "success">("menu");
-
-  // Bir mahsulotga bir marta tavsiya ko'rsatish uchun tracking
-  const shownSuggestions = useRef<Set<string>>(new Set());
-  // Hozir ochiq bo'lgan toast ID ni saqlash (bir vaqtda faqat bitta)
-  const activeToastId = useRef<string | null>(null);
 
   const { data: menuData, isLoading: menuLoading } = useQuery({
     queryKey: ["public-menu", branchId],
@@ -184,62 +58,11 @@ function MenuContent() {
       ? allProducts
       : ((menuGrouped[activeType] || []) as Product[]);
 
-  // ─── Savatchaga qo'shish + tavsiya algoritmi ──────────────────────────
   const addToCart = (product: Product) => {
-    setCart((prev: Record<string, number>) => {
-      const newCart: Record<string, number> = {
-        ...prev,
-        [product.id]: (prev[product.id] || 0) + 1,
-      };
-
-      // Tavsiya faqat birinchi qo'shilganda (0→1) va bir marta ko'rsatiladi
-      const isFirstAdd = !prev[product.id] || prev[product.id] === 0;
-      if (isFirstAdd && !shownSuggestions.current.has(product.id)) {
-        shownSuggestions.current.add(product.id);
-
-        const recommended = findRecommendation(product, allProducts, newCart);
-        if (recommended) {
-          // Oldingi tavsiya toastini yopish
-          if (activeToastId.current) {
-            toast.dismiss(activeToastId.current);
-          }
-
-          const toastId = toast.custom(
-            (t: any) => (
-              <SuggestionToast
-                toastId={t.id}
-                selectedName={product.name}
-                recommendedProduct={recommended}
-                onYes={() => {
-                  setCart((c: Record<string, number>) => ({
-                    ...c,
-                    [recommended.id]: (c[recommended.id] || 0) + 1,
-                  }));
-                  toast.dismiss(t.id);
-                  activeToastId.current = null;
-                }}
-                onNo={() => {
-                  toast.dismiss(t.id);
-                  activeToastId.current = null;
-                }}
-              />
-            ),
-            {
-              duration: 8000,
-              position: "bottom-center",
-              style: {
-                padding: 0,
-                background: "transparent",
-                boxShadow: "none",
-              },
-            },
-          );
-          activeToastId.current = toastId;
-        }
-      }
-
-      return newCart;
-    });
+    setCart((prev: Record<string, number>) => ({
+      ...prev,
+      [product.id]: (prev[product.id] || 0) + 1,
+    }));
   };
 
   const removeFromCart = (productId: string) => {
