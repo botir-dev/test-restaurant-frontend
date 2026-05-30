@@ -6,6 +6,8 @@ import { authApi, customRoleApi } from "@/lib/services";
 import { useQuery } from "@tanstack/react-query";
 import { ROLE_LABELS } from "@/lib/utils";
 import toast from "react-hot-toast";
+import api from "@/lib/api";
+import Image from "next/image";
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -31,84 +33,31 @@ import clsx from "clsx";
 import WebSocketProvider from "@/components/providers/WebSocketProvider";
 
 const navItems = [
+  { href: "/dashboard", label: "Bosh sahifa", icon: LayoutDashboard, roles: ["manager", "super_admin"] },
+  { href: "/tables", label: "Stollar", icon: Table2, roles: ["waiter", "manager"] },
+  { href: "/orders", label: "Buyurtmalar", icon: ShoppingBag, roles: ["waiter", "manager", "cashier"] },
   {
-    href: "/dashboard",
-    label: "Bosh sahifa",
-    icon: LayoutDashboard,
-    roles: ["manager", "super_admin"],
+    href: "/kitchen", label: "Oshxona paneli", icon: ChefHat,
+    roles: ["cook", "baker", "somsa_maker", "grill_master", "turkish_cook", "bartender", "icecream_maker", "tea_master"],
   },
+  { href: "/cashier", label: "Kassa", icon: CreditCard, roles: ["cashier", "manager"] },
   {
-    href: "/tables",
-    label: "Stollar",
-    icon: Table2,
-    roles: ["waiter", "manager"],
-  },
-  {
-    href: "/orders",
-    label: "Buyurtmalar",
-    icon: ShoppingBag,
-    roles: ["waiter", "manager", "cashier"],
-  },
-  {
-    href: "/kitchen",
-    label: "Oshxona paneli",
-    icon: ChefHat,
-    roles: [
-      "cook",
-      "baker",
-      "somsa_maker",
-      "grill_master",
-      "turkish_cook",
-      "bartender",
-      "icecream_maker",
-      "tea_master",
-    ],
-  },
-  {
-    href: "/cashier",
-    label: "Kassa",
-    icon: CreditCard,
-    roles: ["cashier", "manager"],
-  },
-  {
-    href: "/products",
-    label: "Mahsulotlar",
-    icon: Package,
-    roles: [
-      "manager",
-      "storekeeper",
-      "cook",
-      "baker",
-      "somsa_maker",
-      "grill_master",
-      "turkish_cook",
-      "bartender",
-      "icecream_maker",
-      "tea_master",
-    ],
+    href: "/products", label: "Mahsulotlar", icon: Package,
+    roles: ["manager", "storekeeper", "cook", "baker", "somsa_maker", "grill_master", "turkish_cook", "bartender", "icecream_maker", "tea_master"],
   },
   { href: "/staff", label: "Xodimlar", icon: Users, roles: ["manager"] },
   { href: "/qr", label: "QR Kodlar", icon: QrCode, roles: ["manager"] },
   { href: "/archive", label: "Arxiv", icon: Archive, roles: ["manager"] },
   { href: "/reports", label: "Hisobotlar", icon: FileText, roles: ["manager"] },
-  {
-    href: "/admin",
-    label: "Boshqaruv",
-    icon: Building2,
-    roles: ["super_admin"],
-  },
-  {
-    href: "/settings",
-    label: "Sozlamalar",
-    icon: Settings,
-    roles: ["manager"],
-  },
-  {
-    href: "/earnings",
-    label: "Mening maoshim",
-    icon: Wallet,
-    roles: ["waiter"],
-  },
+  { href: "/admin", label: "Boshqaruv", icon: Building2, roles: ["super_admin"] },
+  { href: "/settings", label: "Sozlamalar", icon: Settings, roles: ["manager"] },
+  { href: "/earnings", label: "Mening maoshim", icon: Wallet, roles: ["waiter"] },
+];
+
+const STANDARD_ROLES = [
+  "manager", "super_admin", "waiter", "cashier", "storekeeper",
+  "cook", "baker", "somsa_maker", "grill_master", "turkish_cook",
+  "bartender", "icecream_maker", "tea_master",
 ];
 
 export default function Sidebar() {
@@ -116,6 +65,17 @@ export default function Sidebar() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [open, setOpen] = useState(false);
+
+  // Restoran ma'lumotini olish
+  const { data: restaurantData } = useQuery({
+    queryKey: ["restaurant-me"],
+    queryFn: () => api.get("/restaurants/me").then((r) => r.data?.data),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const restaurantName = restaurantData?.name || "Restoran";
+  const logoUrl = restaurantData?.logo_url;
 
   const handleLogout = async () => {
     try {
@@ -134,40 +94,53 @@ export default function Sidebar() {
     staleTime: 60000,
   });
 
-  const STANDARD_ROLES = [
-    "manager",
-    "super_admin",
-    "waiter",
-    "cashier",
-    "storekeeper",
-    "cook",
-    "baker",
-    "somsa_maker",
-    "grill_master",
-    "turkish_cook",
-    "bartender",
-    "icecream_maker",
-    "tea_master",
-  ];
   const isCustomRole = user ? !STANDARD_ROLES.includes(user.role) : false;
 
   const visible = navItems.filter((n) => {
     if (!user) return false;
     if (n.roles.includes(user.role)) return true;
-    if (isCustomRole && (n.href === "/kitchen" || n.href === "/products"))
-      return true;
+    if (isCustomRole && (n.href === "/kitchen" || n.href === "/products")) return true;
     return false;
   });
+
+  // Logo komponenti
+  const LogoIcon = ({ size = "md" }: { size?: "sm" | "md" }) => {
+    const cls = size === "sm"
+      ? "w-7 h-7 rounded-lg"
+      : "w-9 h-9 rounded-xl";
+
+    if (logoUrl) {
+      return (
+        <div className={`${cls} overflow-hidden flex-shrink-0 bg-gray-100`}>
+          <Image
+            src={logoUrl}
+            alt={restaurantName}
+            width={size === "sm" ? 28 : 36}
+            height={size === "sm" ? 28 : 36}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Xato bo'lsa fallback icon
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`${cls} bg-green-600 flex items-center justify-center flex-shrink-0`}>
+        <UtensilsCrossed className={size === "sm" ? "w-4 h-4 text-white" : "w-5 h-5 text-white"} />
+      </div>
+    );
+  };
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
-        <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
-          <UtensilsCrossed className="w-5 h-5 text-white" />
-        </div>
+        <LogoIcon size="md" />
         <div className="min-w-0">
           <p className="font-bold text-gray-900 text-sm truncate">
-            Restoran Tizimi
+            {restaurantName} Tizimi
           </p>
           <p className="text-xs text-gray-500 truncate">{user?.full_name}</p>
         </div>
@@ -218,27 +191,20 @@ export default function Sidebar() {
     <>
       <WebSocketProvider />
 
+      {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center">
-            <UtensilsCrossed className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-bold text-gray-900 text-sm">Restoran</span>
+          <LogoIcon size="sm" />
+          <span className="font-bold text-gray-900 text-sm">{restaurantName}</span>
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          className="p-2 rounded-lg hover:bg-gray-100"
-        >
+        <button onClick={() => setOpen(true)} className="p-2 rounded-lg hover:bg-gray-100">
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
       </div>
 
       {open && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <div className="relative w-64 bg-white h-full shadow-2xl animate-slideUp">
             <button
               onClick={() => setOpen(false)}
