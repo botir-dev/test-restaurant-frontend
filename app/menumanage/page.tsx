@@ -33,6 +33,111 @@ const BASE_TYPES = [
   "other",
 ];
 
+// ─── INGREDIENT SEARCH DROPDOWN ───────────────────────────────
+function IngredientSelect({
+  value,
+  inventoryItems,
+  onChange,
+}: {
+  value: string;
+  inventoryItems: InventoryItem[];
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const selected = inventoryItems.find((i) => i.id === value);
+  const filtered = inventoryItems.filter((i) =>
+    i.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const label = selected
+    ? `${selected.name} (${selected.unit === "custom" ? selected.custom_unit : selected.unit})`
+    : "-- Ingredient tanlang --";
+
+  return (
+    <div className="relative flex-1">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((o) => !o);
+          setSearch("");
+        }}
+        className={clsx(
+          "input w-full text-sm py-1.5 text-left flex items-center justify-between gap-1",
+          !selected && "text-gray-400",
+        )}
+      >
+        <span className="truncate">{label}</span>
+        <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute z-40 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+            <div className="p-2 border-b border-gray-100">
+              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
+                <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Qidirish..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")}>
+                    <X className="w-3 h-3 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50"
+              >
+                -- Ingredient tanlang --
+              </button>
+              {filtered.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-gray-400">Topilmadi</p>
+              ) : (
+                filtered.map((inv) => (
+                  <button
+                    key={inv.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(inv.id);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                    className={clsx(
+                      "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between",
+                      inv.id === value &&
+                        "bg-green-50 text-green-700 font-medium",
+                    )}
+                  >
+                    <span>{inv.name}</span>
+                    <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                      {inv.unit === "custom" ? inv.custom_unit : inv.unit}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── RETSEPT QATOR ────────────────────────────────────────────
 function RecipeRow({
   line,
@@ -54,18 +159,11 @@ function RecipeRow({
 
   return (
     <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2">
-      <select
-        className="input flex-1 text-sm py-1.5"
+      <IngredientSelect
         value={line.inv_id}
-        onChange={(e) => onChange("inv_id", e.target.value)}
-      >
-        <option value="">-- Ingredient tanlang --</option>
-        {inventoryItems.map((inv) => (
-          <option key={inv.id} value={inv.id}>
-            {inv.name} ({inv.unit === "custom" ? inv.custom_unit : inv.unit})
-          </option>
-        ))}
-      </select>
+        inventoryItems={inventoryItems}
+        onChange={(val) => onChange("inv_id", val)}
+      />
       <div className="flex items-center gap-1 flex-shrink-0">
         <input
           type="number"
