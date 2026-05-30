@@ -17,6 +17,8 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -52,9 +54,17 @@ function AddStockModal({
 }) {
   const qc = useQueryClient();
   const [amount, setAmount] = useState("");
+  const [costPrice, setCostPrice] = useState(
+    item.cost_price ? String(item.cost_price) : ""
+  );
 
   const mutation = useMutation({
-    mutationFn: () => inventoryApi.addStock(item.id, parseFloat(amount)),
+    mutationFn: () =>
+      inventoryApi.addStock(
+        item.id,
+        parseFloat(amount),
+        costPrice ? parseFloat(costPrice) : null
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
       toast.success(`+${amount} ${unitDisplay(item)} qo'shildi`);
@@ -94,15 +104,41 @@ function AddStockModal({
               autoFocus
             />
           </div>
+          <div>
+            <label className="label">
+              Tannarx (1 {unitDisplay(item)} uchun, so'm)
+            </label>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              step={1}
+              placeholder="12000"
+              value={costPrice}
+              onChange={(e) => setCostPrice(e.target.value)}
+            />
+          </div>
           {amount && !isNaN(parseFloat(amount)) && (
-            <div className="bg-green-50 rounded-xl px-4 py-2 text-sm text-green-700">
-              Yangi miqdor:{" "}
-              <strong>
-                {(
-                  parseFloat(item.quantity as any) + parseFloat(amount)
-                ).toFixed(3)}{" "}
-                {unitDisplay(item)}
-              </strong>
+            <div className="bg-green-50 rounded-xl px-4 py-3 text-sm text-green-700 space-y-1">
+              <div>
+                Yangi miqdor:{" "}
+                <strong>
+                  {(parseFloat(item.quantity as any) + parseFloat(amount)).toFixed(3)}{" "}
+                  {unitDisplay(item)}
+                </strong>
+              </div>
+              {costPrice && !isNaN(parseFloat(costPrice)) && parseFloat(costPrice) > 0 && (
+                <div className="text-green-600">
+                  Umumiy qiymat:{" "}
+                  <strong>
+                    {(
+                      (parseFloat(item.quantity as any) + parseFloat(amount)) *
+                      parseFloat(costPrice)
+                    ).toLocaleString("uz-UZ")}{" "}
+                    so'm
+                  </strong>
+                </div>
+              )}
             </div>
           )}
           <div className="flex gap-2">
@@ -152,6 +188,7 @@ function InventoryModal({
     quantity: item ? String(parseFloat(item.quantity as any)) : "0",
     min_quantity: item ? String(parseFloat(item.min_quantity as any)) : "0",
     image_url: item?.image_url || "",
+    cost_price: item?.cost_price ? String(item.cost_price) : "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -176,6 +213,7 @@ function InventoryModal({
         quantity: parseFloat(form.quantity) || 0,
         min_quantity: parseFloat(form.min_quantity) || 0,
         image_url: form.image_url || undefined,
+        cost_price: form.cost_price ? parseFloat(form.cost_price) : null,
       };
       return item
         ? inventoryApi.update(item.id, payload)
@@ -313,6 +351,23 @@ function InventoryModal({
               maxLength={500}
               onChange={(e) =>
                 setForm((p) => ({ ...p, image_url: e.target.value }))
+              }
+            />
+          </div>
+
+          <div>
+            <label className="label">
+              Tannarx (1 {form.unit === "custom" ? form.custom_unit || "birlik" : form.unit} uchun, so'm)
+            </label>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              step={1}
+              placeholder="12000"
+              value={form.cost_price}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, cost_price: e.target.value }))
               }
             />
           </div>
@@ -504,6 +559,32 @@ export default function InventoryPage() {
                     <p className="text-xs text-gray-400 mt-1 text-center">
                       min: {minQty} {unit}
                     </p>
+                  )}
+
+                  {/* Tannarx va umumiy qiymat - faqat manager ko'radi */}
+                  {item.cost_price != null && item.cost_price > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between bg-blue-50 rounded-lg px-2 py-1">
+                        <span className="text-xs text-blue-500 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          1 {unit}
+                        </span>
+                        <span className="text-xs font-semibold text-blue-700">
+                          {Number(item.cost_price).toLocaleString("uz-UZ")} so'm
+                        </span>
+                      </div>
+                      {item.total_cost != null && item.total_cost > 0 && (
+                        <div className="flex items-center justify-between bg-purple-50 rounded-lg px-2 py-1">
+                          <span className="text-xs text-purple-500 flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            Jami
+                          </span>
+                          <span className="text-xs font-semibold text-purple-700">
+                            {Number(item.total_cost).toLocaleString("uz-UZ")} so'm
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Tugmalar */}

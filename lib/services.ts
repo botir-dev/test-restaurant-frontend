@@ -224,6 +224,7 @@ export const inventoryApi = {
     quantity?: number;
     min_quantity?: number;
     image_url?: string;
+    cost_price?: number | null;
   }) => api.post("/inventory", data),
   update: (
     id: string,
@@ -234,10 +235,11 @@ export const inventoryApi = {
       quantity?: number;
       min_quantity?: number;
       image_url?: string;
+      cost_price?: number | null;
     },
   ) => api.put(`/inventory/${id}`, data),
-  addStock: (id: string, amount: number) =>
-    api.patch(`/inventory/${id}/add`, { amount }),
+  addStock: (id: string, amount: number, cost_price?: number | null) =>
+    api.patch(`/inventory/${id}/add`, { amount, cost_price }),
   delete: (id: string) => api.delete(`/inventory/${id}`),
   getLogs: (params?: { item_id?: string; page?: number; limit?: number }) =>
     api.get("/inventory/logs", { params }),
