@@ -1,20 +1,10 @@
 // Service Worker — Restoran Tizimi
-const CACHE_NAME = "restoran-v1";
-const API_CACHE = "restoran-api-v1";
-const IMG_CACHE = "restoran-img-v1";
+const CACHE_NAME = "restoran-v2";
+const API_CACHE = "restoran-api-v2";
+const IMG_CACHE = "restoran-img-v2";
 
-// Install vaqtida cache qilinadigan sahifalar
-const STATIC_ASSETS = [
-  "/",
-  "/login",
-  "/dashboard",
-  "/tables",
-  "/orders",
-  "/kitchen",
-  "/cashier",
-  "/products",
-  "/manifest.json",
-];
+// "/" olib tashlandi — middleware redirect qiladi, SW cache qilmasin
+const STATIC_ASSETS = ["/login", "/manifest.json"];
 
 // ─── INSTALL ──────────────────────────────────────────────────
 self.addEventListener("install", (event) => {
@@ -22,9 +12,7 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE_NAME)
       .then((cache) => {
-        return cache.addAll(STATIC_ASSETS).catch(() => {
-          // Ba'zi sahifalar yuklanmasa ham davom etadi
-        });
+        return cache.addAll(STATIC_ASSETS).catch(() => {});
       })
       .then(() => self.skipWaiting()),
   );
@@ -46,18 +34,23 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// ─── FETCH — so'rovlarni ushlash ──────────────────────────────
+// ─── FETCH ────────────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // WebSocket — o'tkazib yuborish
   if (url.protocol === "wss:" || url.protocol === "ws:") return;
-
-  // Chrome extension — o'tkazib yuborish
   if (!url.protocol.startsWith("http")) return;
 
-  // API so'rovlari — Network First (5s timeout)
+  // "/" va navigatsiya so'rovlari — HECH QACHON cache qilmasin
+  // Middleware server tomonda redirect qiladi
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // API so'rovlari — Network First
   if (url.hostname !== self.location.hostname) {
     event.respondWith(networkFirst(request, API_CACHE, 5000));
     return;
@@ -69,11 +62,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Sahifalar va statik fayllar — Stale While Revalidate
+  // Statik fayllar — Stale While Revalidate
   event.respondWith(staleWhileRevalidate(request, CACHE_NAME));
 });
 
-// ─── Network First: avval network, yo'q bo'lsa cache ─────────
+// ─── Network First ────────────────────────────────────────────
 async function networkFirst(request, cacheName, timeout) {
   const cache = await caches.open(cacheName);
   try {
@@ -81,18 +74,15 @@ async function networkFirst(request, cacheName, timeout) {
     const timer = setTimeout(() => controller.abort(), timeout);
     const response = await fetch(request, { signal: controller.signal });
     clearTimeout(timer);
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
+    if (response.ok) cache.put(request, response.clone());
     return response;
   } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
-    // API offline javob
     return new Response(
       JSON.stringify({
         success: false,
-        message: "Offline rejim — internet yo'q",
+        message: "Offline rejim",
         offline: true,
       }),
       { status: 503, headers: { "Content-Type": "application/json" } },
@@ -100,7 +90,7 @@ async function networkFirst(request, cacheName, timeout) {
   }
 }
 
-// ─── Cache First: cache dan, yo'q bo'lsa network ─────────────
+// ─── Cache First ──────────────────────────────────────────────
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -114,7 +104,7 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-// ─── Stale While Revalidate: cache, keyin yangilash ──────────
+// ─── Stale While Revalidate ───────────────────────────────────
 async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -124,38 +114,18 @@ async function staleWhileRevalidate(request, cacheName) {
       return response;
     })
     .catch(() => null);
-
   return cached || fetchPromise || new Response("Offline", { status: 503 });
 }
 
-// ─── Background Sync — offline amallarni yuborish ─────────────
+// ─── Background Sync ──────────────────────────────────────────
 self.addEventListener("sync", (event) => {
   if (event.tag === "sync-pending-actions") {
-    event.waitUntil(syncPendingActions());
-  }
-});
-
-async function syncPendingActions() {
-  // IndexedDB dan pending amallarni o'qib yuborish
-  // Bu logika lib/sync.ts da — client tomonida boshqariladi
-  // SW faqat signalni yuboradi
-  const clients = await self.clients.matchAll();
-  clients.forEach((client) => {
-    client.postMessage({ type: "sync-requested" });
-  });
-}
-
-// ─── Push notifications (kelajak uchun) ──────────────────────
-self.addEventListener("push", (event) => {
-  if (!event.data) return;
-  try {
-    const data = event.data.json();
     event.waitUntil(
-      self.registration.showNotification(data.title || "Restoran", {
-        body: data.body || "",
-        icon: "/icons/icon-192.png",
-        badge: "/icons/icon-192.png",
-      }),
+      self.clients
+        .matchAll()
+        .then((clients) =>
+          clients.forEach((c) => c.postMessage({ type: "sync-requested" })),
+        ),
     );
-  } catch {}
+  }
 });
