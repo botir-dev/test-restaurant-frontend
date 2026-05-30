@@ -8,11 +8,7 @@ export default function Home() {
   const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace("/login");
-      return;
-    }
-    router.replace("/dashboard");
+    router.replace(isAuthenticated ? "/dashboard" : "/login");
   }, [isAuthenticated, router]);
 
   return (
