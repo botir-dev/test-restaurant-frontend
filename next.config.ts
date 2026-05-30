@@ -19,6 +19,13 @@ const nextConfig: NextConfig = {
       headers: securityHeaders,
     },
   ],
+  redirects: async () => [
+    {
+      source: "/",
+      destination: "/login",
+      permanent: false,
+    },
+  ],
 };
 
 export default nextConfig;
