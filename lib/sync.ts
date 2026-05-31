@@ -26,7 +26,7 @@ const executeAction = async (action: PendingAction): Promise<void> => {
       );
       break;
     case "complete_payment":
-      await api.post(`/payments/${payload.orderId}/pay`, {
+      await api.post(`/payments/${payload.orderId}`, {
         payment_type: payload.payment_type,
       });
       break;
