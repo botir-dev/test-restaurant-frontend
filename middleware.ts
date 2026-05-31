@@ -73,7 +73,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const allowedRoutes = ROLE_ROUTES[role] ?? ["/kitchen", "/menumanage"];
+  const allowedRoutes = ROLE_ROUTES[role] ?? ["/kitchen", "/menumanage", "/earnings"];
   const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
 
   if (!hasAccess) {

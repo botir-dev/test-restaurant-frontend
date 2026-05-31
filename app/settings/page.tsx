@@ -15,23 +15,10 @@ import {
   ChevronUp,
 } from "lucide-react";
 import api from "@/lib/api";
+import { customRoleApi } from "@/lib/services";
 import { formatPrice } from "@/lib/utils";
 
-const ROLE_LABELS: Record<string, string> = {
-  cashier: "Kassir",
-  storekeeper: "Omborchi",
-  cook: "Oshpaz",
-  baker: "Novvoy",
-  somsa_maker: "Somsa ustasi",
-  grill_master: "Grill ustasi",
-  turkish_cook: "Turk oshpazi",
-  bartender: "Barmen",
-  icecream_maker: "Muzqaymoq ustasi",
-  tea_master: "Choy ustasi",
-  manager: "Menejer",
-};
-
-const COMMISSION_ROLES = [
+const BASE_COMMISSION_ROLES = [
   "cashier",
   "storekeeper",
   "cook",
@@ -76,6 +63,31 @@ function Toggle({
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
+
+  const { data: customRolesData } = useQuery({
+    queryKey: ["custom-roles"],
+    queryFn: () => customRoleApi.getAll(),
+  });
+  const customRoles: any[] = customRolesData?.data?.data || [];
+  const COMMISSION_ROLES = [
+    ...BASE_COMMISSION_ROLES,
+    ...customRoles.map((r: any) => r.key),
+  ];
+
+  const ROLE_LABELS: Record<string, string> = {
+    ...Object.fromEntries(customRoles.map((r: any) => [r.key, r.name])),
+    cashier: "Kassir",
+    storekeeper: "Omborchi",
+    cook: "Oshpaz",
+    baker: "Novvoy",
+    somsa_maker: "Somsa ustasi",
+    grill_master: "Grill ustasi",
+    turkish_cook: "Turk oshpazi",
+    bartender: "Barmen",
+    icecream_maker: "Muzqaymoq ustasi",
+    tea_master: "Choy ustasi",
+    manager: "Menejer",
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["manager-settings"],

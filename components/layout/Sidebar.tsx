@@ -188,7 +188,12 @@ export default function Sidebar() {
   const visible = navItems.filter((n) => {
     if (!user) return false;
     if (n.roles.includes(user.role)) return true;
-    if (isCustomRole && (n.href === "/kitchen" || n.href === "/menumanage"))
+    if (
+      isCustomRole &&
+      (n.href === "/kitchen" ||
+        n.href === "/menumanage" ||
+        n.href === "/earnings")
+    )
       return true;
     return false;
   });
