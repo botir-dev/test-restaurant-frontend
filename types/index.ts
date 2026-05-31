@@ -95,6 +95,7 @@ export interface Table {
   table_number: number;
   capacity: number;
   is_occupied: boolean;
+  is_virtual: boolean;
   current_order_id: string | null;
   next_reservation?: {
     id: string;

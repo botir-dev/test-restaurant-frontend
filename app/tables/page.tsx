@@ -428,7 +428,9 @@ function ReservationModal({
     queryFn: () => tableApi.getAll(),
     enabled: !tableId,
   });
-  const tables: Table[] = tablesData?.data?.data || [];
+  const tables: Table[] = (tablesData?.data?.data || []).filter(
+    (t: Table) => !t.is_virtual,
+  );
 
   const [form, setForm] = useState({
     table_id: tableId || "",
@@ -734,7 +736,9 @@ export default function TablesPage() {
     queryFn: () => tableApi.getAll(),
   });
 
-  const tables: Table[] = data?.data?.data || [];
+  const tables: Table[] = (data?.data?.data || []).filter(
+    (t: Table) => !t.is_virtual,
+  );
   const occupied = tables.filter((t) => t.is_occupied).length;
   const free = tables.filter((t) => !t.is_occupied).length;
   const filtered = tables.filter((t) =>
