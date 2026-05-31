@@ -362,6 +362,7 @@ function StaffDetailModal({
     role: staff.role as string,
     extra_permissions: safeParsePermissions(staff.extra_permissions),
     monthly_salary: staff.monthly_salary ? String(staff.monthly_salary) : "",
+    use_commission: staff.use_commission || false,
   });
   const isManager = staff.role === "manager";
   const [showPass, setShowPass] = useState(false);
@@ -382,9 +383,12 @@ function StaffDetailModal({
         phone: form.phone,
         role: form.role as Role,
         extra_permissions: form.extra_permissions as ProductType[],
-        monthly_salary: form.monthly_salary
-          ? parseFloat(form.monthly_salary)
-          : null,
+        monthly_salary: form.use_commission
+          ? null
+          : form.monthly_salary
+            ? parseFloat(form.monthly_salary)
+            : null,
+        use_commission: form.use_commission,
         ...(form.password ? { password: form.password } : {}),
       }),
     onSuccess: () => {
@@ -486,9 +490,56 @@ function StaffDetailModal({
               onToggle={togglePerm}
             />
           </div>
-          {/* Oylik maosh */}
-          <div>
-            <label className="label">Oylik maosh (so'm)</label>
+          {/* Maosh hisoblash usuli */}
+          {!isManager && (
+            <div className="bg-blue-50 rounded-xl p-3 space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div
+                  onClick={() =>
+                    setForm((p) => ({
+                      ...p,
+                      use_commission: !p.use_commission,
+                    }))
+                  }
+                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                    form.use_commission ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                      form.use_commission ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">
+                    Foizda hisoblash (komissiya)
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Yoqilsa — sozlamalardagi rol foizi bo'yicha avtomatik
+                    hisoblanadi
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
+
+          {/* Oylik maosh — faqat foizda hisoblash o'chiq bo'lganda */}
+          <div
+            className={
+              form.use_commission && !isManager
+                ? "opacity-40 pointer-events-none"
+                : ""
+            }
+          >
+            <label className="label">
+              Oylik maosh (so'm)
+              {form.use_commission && !isManager && (
+                <span className="text-xs text-orange-500 ml-2">
+                  — foizda hisoblash yoqiq
+                </span>
+              )}
+            </label>
             <input
               className="input"
               type="number"

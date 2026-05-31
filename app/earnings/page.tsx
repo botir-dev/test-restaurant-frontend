@@ -21,7 +21,7 @@ export default function EarningsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-earnings", date],
     queryFn: () => api.get("/branches/me/earnings", { params: { date } }),
-    enabled: user?.role === "waiter",
+    enabled: !!user?.role && user?.role !== "manager",
   });
 
   const d = data?.data?.data;
@@ -43,11 +43,11 @@ export default function EarningsPage() {
       year: "numeric",
     });
 
-  if (user?.role !== "waiter") {
+  if (user?.role === "manager" || user?.role === "super_admin") {
     return (
       <div className="text-center py-16 text-gray-400">
         <Wallet className="w-10 h-10 mx-auto mb-2" />
-        <p>Bu sahifa faqat ofitsiantlar uchun</p>
+        <p>Menejer uchun sozlamalar bo'limiga o'ting</p>
       </div>
     );
   }

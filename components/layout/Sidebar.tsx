@@ -117,7 +117,19 @@ const navItems = [
     href: "/earnings",
     label: "Mening maoshim",
     icon: Wallet,
-    roles: ["waiter"],
+    roles: [
+      "waiter",
+      "cashier",
+      "storekeeper",
+      "cook",
+      "baker",
+      "somsa_maker",
+      "grill_master",
+      "turkish_cook",
+      "bartender",
+      "icecream_maker",
+      "tea_master",
+    ],
   },
 ];
 
