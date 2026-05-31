@@ -160,7 +160,11 @@ export default function KitchenPage() {
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-white font-bold text-lg">
-                        {(order as any).table_number}-stol
+                        {order.order_type === "takeaway"
+                          ? "🛍 Saboy"
+                          : order.order_type === "delivery"
+                            ? "🚚 Dostavka"
+                            : `${(order as any).table_number}-stol`}
                       </span>
                       {order.is_from_qr && (
                         <span className="badge bg-white/20 text-white text-xs">

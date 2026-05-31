@@ -36,6 +36,8 @@ export type OrderStatus =
 
 export type PaymentType = "cash" | "card" | "qr_payment";
 
+export type OrderType = "table" | "takeaway" | "delivery";
+
 export interface User {
   user_id: string;
   full_name: string;
@@ -120,6 +122,7 @@ export interface Order {
   guest_count: number;
   status: OrderStatus;
   is_from_qr: boolean;
+  order_type: OrderType;
   items: OrderItem[];
   created_at: string;
   updated_at: string;
@@ -154,6 +157,7 @@ export interface ArchiveItem {
   grand_total: number;
   payment_type: PaymentType;
   is_from_qr: boolean;
+  order_type: OrderType;
   service_started: string;
   service_ended: string;
   created_at: string;

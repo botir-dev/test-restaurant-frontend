@@ -138,6 +138,15 @@ export const tableApi = {
 };
 
 // ─── ORDERS ─────────────────────────────────────────────
+export const cashierOrderApi = {
+  create: (data: {
+    items: { product_id: string; quantity: number }[];
+    order_type: "takeaway" | "delivery";
+    guest_count?: number;
+    note?: string;
+  }) => api.post("/orders/cashier", data),
+};
+
 export const orderApi = {
   getAll: (params?: { status?: string }) => api.get("/orders", { params }),
   create: (data: {

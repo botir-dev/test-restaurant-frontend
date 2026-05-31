@@ -227,14 +227,20 @@ export default function ArchivePage() {
             <div key={item.id} className="card">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-gray-900">
-                      {item.table_number}-stol
+                      {item.order_type === "takeaway" ? "🛍 Saboy" :
+                       item.order_type === "delivery" ? "🚚 Dostavka" :
+                       `${item.table_number}-stol`}
                     </span>
                     {item.is_from_qr && (
-                      <span className="badge bg-purple-100 text-purple-700 text-xs">
-                        QR
-                      </span>
+                      <span className="badge bg-purple-100 text-purple-700 text-xs">QR</span>
+                    )}
+                    {item.order_type === "takeaway" && (
+                      <span className="badge bg-orange-100 text-orange-700 text-xs">Saboy</span>
+                    )}
+                    {item.order_type === "delivery" && (
+                      <span className="badge bg-blue-100 text-blue-700 text-xs">Dostavka</span>
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
