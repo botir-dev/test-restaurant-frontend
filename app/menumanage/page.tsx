@@ -94,7 +94,7 @@ function IngredientSelect({
                 )}
               </div>
             </div>
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-24 overflow-y-auto">
               <button
                 type="button"
                 onClick={() => {
