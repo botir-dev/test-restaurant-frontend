@@ -10,15 +10,19 @@ import { useAuthStore } from "@/store/auth.store";
  * Bu komponent children ni BLOKLAYDI — token tiklanmaguncha
  * hech bir sahifa component mount bo'lmaydi →
  * API so'rovlari ham ketmaydi → 401 loop yo'q!
+ *
+ * MUHIM: isAuthenticated (localStorage) ga emas, har doim refresh
+ * urinib ko'ramiz. Chunki:
+ * - isAuthenticated false bo'lib qolishi mumkin (boshqa tab, clear storage)
+ * - Lekin refresh_token cookie (HttpOnly, SameSite=None) hali amal qilayotgan bo'lishi mumkin
+ * - Agar refresh_token yo'q bo'lsa, backend 401 qaytaradi — logout.
  */
 export default function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, accessToken, setAccessToken, logout } =
-    useAuthStore();
-  // ready = true bo'lganda children render qilinadi
+  const { accessToken, setAccessToken, logout } = useAuthStore();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -29,28 +33,34 @@ export default function AuthProvider({
         return;
       }
 
-      // 2) isAuthenticated bor lekin token yo'q — Ctrl+R holati
-      if (isAuthenticated) {
-        try {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include", // refresh_token HttpOnly cookie avtomatik
-              body: JSON.stringify({}),
-            },
-          );
+      // 2) Token yo'q — refresh urinib ko'ramiz (har doim).
+      //    isAuthenticated tekshirmaymiz — cross-site cookie (SameSite=None)
+      //    bilan refresh_token mavjudligini faqat backend biladi.
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include", // refresh_token HttpOnly cookie avtomatik
+            body: JSON.stringify({}),
+          },
+        );
+
+        if (res.ok) {
           const data = await res.json();
           if (data?.data?.access_token) {
             setAccessToken(data.data.access_token);
           } else {
-            // Refresh token ham o'chgan — logout
             logout();
           }
-        } catch {
+        } else {
+          // 401 — foydalanuvchi tizimga kirmagan yoki token muddati o'tgan
           logout();
         }
+      } catch {
+        // Tarmoq xatosi — logout qilamiz
+        logout();
       }
 
       // 3) Hammasi bo'ldi — children ni ko'rsatish mumkin
