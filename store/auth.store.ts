@@ -54,7 +54,6 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => {
         // access_token — memory + cookie (middleware JWT verify uchun)
         setCookie("access_token", user.access_token, 1); // 1 kun — qisqa muddat
-        setCookie("refresh_token", user.refresh_token, 7);
         setCookie("user_role", user.role, 7);
         setCookie("is_authenticated", "true", 7);
 
