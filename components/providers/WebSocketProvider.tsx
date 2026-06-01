@@ -22,7 +22,7 @@ const unlockAudio = () => {
   } catch (_) {}
 };
 
-// ─── RINGTONE: chiroyli "ding-dong" chime ────────────────────────────
+// ─── RINGTONE ────────────────────────────────────────────────────────
 const playSound = () => {
   try {
     const AC = window.AudioContext || (window as any).webkitAudioContext;
@@ -50,11 +50,10 @@ const playSound = () => {
     };
 
     const t = ctx.currentTime;
-    // "Ding-dong" melodiyasi — ikki marta
-    note(1046.5, t + 0.0, 0.25); // Do5
-    note(784.0, t + 0.28, 0.35); // Sol4
-    note(880.0, t + 0.7, 0.2); // La4
-    note(1046.5, t + 0.93, 0.35); // Do5
+    note(1046.5, t + 0.0, 0.25);
+    note(784.0, t + 0.28, 0.35);
+    note(880.0, t + 0.7, 0.2);
+    note(1046.5, t + 0.93, 0.35);
 
     setTimeout(() => {
       try {
@@ -67,7 +66,6 @@ const playSound = () => {
 // ─── VIBRATSIYA ──────────────────────────────────────────────────────
 const vibrate = () => {
   try {
-    // Qisqa-uzun-qisqa naqsh
     navigator.vibrate?.([150, 80, 150, 80, 300]);
   } catch (_) {}
 };
@@ -81,7 +79,7 @@ const notify = (msg: string, icon: string, duration: number) => {
 
 // ─── WEBSOCKET PROVIDER ──────────────────────────────────────────────
 export default function WebSocketProvider() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, accessToken } = useAuthStore(); // ← accessToken qo'shildi
   const qc = useQueryClient();
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -90,7 +88,6 @@ export default function WebSocketProvider() {
   const isDestroyedRef = useRef(false);
   const MAX_RECONNECT = 15;
 
-  // AudioContext unlock — birinchi foydalanuvchi harakati
   useEffect(() => {
     document.addEventListener("click", unlockAudio, { once: true });
     document.addEventListener("touchstart", unlockAudio, { once: true });
@@ -100,7 +97,6 @@ export default function WebSocketProvider() {
     };
   }, []);
 
-  // ─── WS URL: token subprotocol orqali ─────────────────────────────
   const buildWsUrl = useCallback((): string => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
     if (apiUrl) {
@@ -151,12 +147,12 @@ export default function WebSocketProvider() {
       wsRef.current = null;
     }
 
-    const token = localStorage.getItem("access_token");
+    // ← O'zgarish shu yerda: localStorage emas, store dan
+    const token = useAuthStore.getState().accessToken;
     if (!token) return;
 
     let ws: WebSocket;
     try {
-      // Token subprotocol orqali — URL da ko'rinmaydi
       ws = new WebSocket(buildWsUrl(), [`bearer.${token}`]);
     } catch {
       scheduleReconnect();
@@ -224,9 +220,11 @@ export default function WebSocketProvider() {
     connectRef.current = connect;
   }, [connect]);
 
+  // ← accessToken ham dependency ga qo'shildi
+  // Token yangilanganda (refresh dan keyin) WS qayta ulanadi
   useEffect(() => {
     isDestroyedRef.current = false;
-    if (isAuthenticated) {
+    if (isAuthenticated && accessToken) {
       reconnectCountRef.current = 0;
       connect();
     } else {
@@ -236,7 +234,7 @@ export default function WebSocketProvider() {
       isDestroyedRef.current = true;
       disconnect();
     };
-  }, [isAuthenticated, connect, disconnect]);
+  }, [isAuthenticated, accessToken, connect, disconnect]);
 
   return null;
 }

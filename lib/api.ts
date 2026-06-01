@@ -1,20 +1,33 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: { "Content-Type": "application/json" },
-});
+const getStore = () => {
+  const { useAuthStore } = require("@/store/auth.store");
+  return useAuthStore.getState();
+};
 
-// ─── Cookie o'chirish yordamchi ───────────────────────────────
+const getCookie = (name: string): string | null => {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp("(?:^|; )" + name + "=([^;]*)"),
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
 const deleteCookie = (name: string) => {
   if (typeof document === "undefined") return;
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 
-// ─── Request interceptor ──────────────────────────────────────
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  headers: { "Content-Type": "application/json" },
+  withCredentials: true, // cookie cross-origin yuboriladi
+});
+
+// ─── Request interceptor — token memory dan ──────────────────
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("access_token");
+    const token = getStore().accessToken;
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -36,11 +49,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 const clearAuth = () => {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("auth-storage");
+  deleteCookie("refresh_token");
   deleteCookie("user_role");
   deleteCookie("is_authenticated");
+  localStorage.removeItem("auth-storage");
+  getStore().logout();
 };
 
 api.interceptors.response.use(
@@ -67,17 +80,17 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const refresh_token = localStorage.getItem("refresh_token");
-      if (!refresh_token) throw new Error("Refresh token yo'q");
-
+      // withCredentials=true bo'lgani uchun cookie avtomatik ketadi
+      // body da refresh_token shart emas — backend cookie dan oladi
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
-        { refresh_token },
+        {},
+        { withCredentials: true },
       );
 
-      const { access_token, refresh_token: newRefresh } = res.data.data;
-      localStorage.setItem("access_token", access_token);
-      localStorage.setItem("refresh_token", newRefresh);
+      const { access_token } = res.data.data;
+
+      getStore().setAccessToken(access_token);
 
       original.headers.Authorization = `Bearer ${access_token}`;
       processQueue(null, access_token);

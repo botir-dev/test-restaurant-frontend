@@ -14,10 +14,22 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 
+// Faqat o'qish uchun — HttpOnly bo'lgach JS o'qiy olmaydi,
+// lekin backend set qilguncha client-side ishlatamiz
+const getCookie = (name: string): string | null => {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp("(?:^|; )" + name + "=([^;]*)"),
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  accessToken: string | null; // localStorage emas — memory
   setUser: (user: User) => void;
+  setAccessToken: (token: string) => void;
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
   canPrepare: (type: ProductType) => boolean;
@@ -39,34 +51,47 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
+      accessToken: null,
 
       setUser: (user) => {
-        localStorage.setItem("access_token", user.access_token);
-        localStorage.setItem("refresh_token", user.refresh_token);
+        // access_token — faqat memory (XSS dan himoya)
+        // refresh_token — cookie (backend HttpOnly set qilguncha client-side)
+        setCookie("refresh_token", user.refresh_token, 7);
         setCookie("user_role", user.role, 7);
         setCookie("is_authenticated", "true", 7);
-        set({ user, isAuthenticated: true });
+
+        // localStorage dan tozalash (eski versiya qoldig'i)
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+        }
+
+        set({ user, isAuthenticated: true, accessToken: user.access_token });
+      },
+
+      setAccessToken: (token) => {
+        set({ accessToken: token });
       },
 
       logout: async () => {
         try {
-          const refresh_token = localStorage.getItem("refresh_token");
-          if (refresh_token) {
+          const refreshToken = getCookie("refresh_token");
+          if (refreshToken) {
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ refresh_token }),
+              // Backend HttpOnly cookie ishlatgach credentials: "include" yetarli
+              body: JSON.stringify({ refresh_token: refreshToken }),
             });
           }
         } catch {
           // Tarmoq xatosida ham tozalanadi
         } finally {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          localStorage.removeItem("auth-storage");
+          deleteCookie("refresh_token");
           deleteCookie("user_role");
           deleteCookie("is_authenticated");
-          set({ user: null, isAuthenticated: false });
+          localStorage.removeItem("auth-storage");
+          set({ user: null, isAuthenticated: false, accessToken: null });
         }
       },
 
@@ -88,6 +113,7 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-storage",
       partialize: (state) => ({
+        // accessToken persist QILINMAYDI — sahifa yangilanganda refresh orqali tiklanadi
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
