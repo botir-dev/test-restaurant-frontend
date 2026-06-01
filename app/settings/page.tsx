@@ -112,6 +112,7 @@ export default function SettingsPage() {
       setVatEnabled(settings.vat_enabled || false);
       setVatPercent(String(settings.vat_percent || 12));
       setWaiterCommission(String(settings.waiter_commission_percent || 0));
+      setTelegramChatId(settings.telegram_chat_id || "");
       const rc = settings.role_commissions || {};
       const mapped: Record<string, string> = {};
       COMMISSION_ROLES.forEach((r) => {
@@ -154,6 +155,7 @@ export default function SettingsPage() {
       vat_enabled: vatEnabled,
       waiter_commission_percent: wcp,
       role_commissions: rc,
+      telegram_chat_id: telegramChatId || null,
     });
   };
 
@@ -161,6 +163,7 @@ export default function SettingsPage() {
   const today = new Date().toISOString().split("T")[0];
   const [earningsDate, setEarningsDate] = useState(today);
   const [showRoleCommissions, setShowRoleCommissions] = useState(false);
+  const [telegramChatId, setTelegramChatId] = useState("");
 
   const { data: earningsData } = useQuery({
     queryKey: ["waiter-earnings", earningsDate],
@@ -346,6 +349,33 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Telegram ogohlantirish */}
+        <div className="space-y-2 pt-2 border-t border-gray-100">
+          <label className="label flex items-center gap-2">
+            <span>🤖 Telegram Chat ID</span>
+            <span className="text-xs text-gray-400 font-normal">
+              — ombor ogohlantirishlari uchun
+            </span>
+          </label>
+          <input
+            className="input"
+            placeholder="Masalan: 123456789"
+            value={telegramChatId}
+            onChange={(e) => setTelegramChatId(e.target.value)}
+          />
+          <p className="text-xs text-gray-400">
+            Chat ID ni topish: botga /start yuboring, keyin{" "}
+            <a
+              href="https://t.me/userinfobot"
+              target="_blank"
+              className="text-blue-500 underline"
+            >
+              @userinfobot
+            </a>{" "}
+            ga /start yuboring — u sizning ID ingizni ko'rsatadi.
+          </p>
         </div>
 
         <button
