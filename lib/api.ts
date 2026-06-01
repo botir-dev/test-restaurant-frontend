@@ -21,7 +21,7 @@ const deleteCookie = (name: string) => {
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: { "Content-Type": "application/json" },
-  withCredentials: true, // cookie cross-origin yuboriladi
+  withCredentials: true,
 });
 
 // ─── Request interceptor — token memory dan ──────────────────
@@ -49,6 +49,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 const clearAuth = () => {
+  deleteCookie("access_token");
   deleteCookie("refresh_token");
   deleteCookie("user_role");
   deleteCookie("is_authenticated");
@@ -56,12 +57,23 @@ const clearAuth = () => {
   getStore().logout();
 };
 
+// Refresh in progress flag — component mount da bir marta
+let refreshPromise: Promise<string> | null = null;
+
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
 
     if (err.response?.status !== 401 || original._retry) {
+      return Promise.reject(err);
+    }
+
+    // Login sahifasiga so'rov ketsa — refresh urinmaymiz
+    if (
+      original.url?.includes("/auth/refresh") ||
+      original.url?.includes("/auth/login")
+    ) {
       return Promise.reject(err);
     }
 
@@ -80,8 +92,6 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // withCredentials=true bo'lgani uchun cookie avtomatik ketadi
-      // body da refresh_token shart emas — backend cookie dan oladi
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
         {},
@@ -99,12 +109,21 @@ api.interceptors.response.use(
     } catch (refreshErr) {
       processQueue(refreshErr, null);
       clearAuth();
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      // ❌ window.location.href = "/login" — BU LOOP YARATADI
+      // ✅ Faqat state tozalab, middleware o'zi redirect qilsin
+      // Agar hozir login sahifasida bo'lmasak — yo'naltirish
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/login")
+      ) {
+        // Router ishlatib soft redirect — page reload yo'q
+        window.history.pushState({}, "", "/login");
+        window.dispatchEvent(new PopStateEvent("popstate"));
       }
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;
+      refreshPromise = null;
     }
   },
 );

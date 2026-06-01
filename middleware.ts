@@ -58,9 +58,6 @@ const verifyToken = async (token: string): Promise<{ role: string } | null> => {
   }
 };
 
-// Middleware da refresh qila olmaymiz (edge runtime — HttpOnly cookie o'qib bo'lmaydi to'liq)
-// Shuning uchun: access_token yo'q bo'lsa, refresh_token borligini tekshirib,
-// /api/silent-refresh ga yo'naltiramiz — u yerda yangi access_token cookie o'rnatiladi
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -71,41 +68,19 @@ export async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("access_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
 
-  // "/" root path
-  if (pathname === "/") {
-    if (!accessToken && !refreshToken) {
+  // access_token yo'q — lekin refresh_token bor bo'lsa
+  // AuthProvider client-side da refresh qiladi, shuning uchun
+  // biz bu yerda LOGIN ga redirect QILMAYMIZ —
+  // sahifani o'tkazib yuboramiz, AuthProvider handle qilsin
+  if (!accessToken) {
+    if (refreshToken) {
+      // Refresh token bor — sahifani ko'rsatamiz, AuthProvider refresh qiladi
+      return NextResponse.next();
+    }
+    // Hech narsa yo'q — login
+    if (pathname === "/") {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    if (accessToken) {
-      const payload = await verifyToken(accessToken);
-      if (payload) {
-        const home = ROLE_HOME[payload.role] ?? "/kitchen";
-        return NextResponse.redirect(new URL(home, request.url));
-      }
-    }
-    // access_token yo'q lekin refresh_token bor — silent-refresh sahifasiga
-    if (refreshToken) {
-      const silentUrl = new URL("/silent-refresh", request.url);
-      silentUrl.searchParams.set("from", "/");
-      return NextResponse.redirect(silentUrl);
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // Silent-refresh sahifasi — loop oldini olish
-  if (pathname === "/silent-refresh") {
-    return NextResponse.next();
-  }
-
-  // Access token yo'q
-  if (!accessToken) {
-    // Refresh token bor — silent refresh orqali tiklaymiz
-    if (refreshToken) {
-      const silentUrl = new URL("/silent-refresh", request.url);
-      silentUrl.searchParams.set("from", pathname);
-      return NextResponse.redirect(silentUrl);
-    }
-    // Ikkalasi ham yo'q — login
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
@@ -113,13 +88,19 @@ export async function middleware(request: NextRequest) {
 
   // Access token bor — verify
   const payload = await verifyToken(accessToken);
-  if (!payload) {
-    // Token yaroqsiz
-    if (refreshToken) {
-      const silentUrl = new URL("/silent-refresh", request.url);
-      silentUrl.searchParams.set("from", pathname);
-      return NextResponse.redirect(silentUrl);
+
+  if (pathname === "/") {
+    if (!payload) {
+      if (refreshToken) return NextResponse.next();
+      return NextResponse.redirect(new URL("/login", request.url));
     }
+    const home = ROLE_HOME[payload.role] ?? "/kitchen";
+    return NextResponse.redirect(new URL(home, request.url));
+  }
+
+  if (!payload) {
+    // Token yaroqsiz — refresh_token bor bo'lsa AuthProvider hal qilsin
+    if (refreshToken) return NextResponse.next();
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
