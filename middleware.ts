@@ -51,9 +51,7 @@ const PUBLIC_PATHS = [
 // JWT verify — edge runtime uchun jose ishlatiladi
 const verifyToken = async (token: string): Promise<{ role: string } | null> => {
   try {
-    const secret = new TextEncoder().encode(
-      process.env.NEXT_PUBLIC_JWT_ACCESS_SECRET,
-    );
+    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET);
     const { payload } = await jwtVerify(token, secret);
     return { role: payload.role as string };
   } catch {
