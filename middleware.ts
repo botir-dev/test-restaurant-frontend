@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
 const ROLE_ROUTES: Record<string, string[]> = {
   super_admin: ["/admin", "/restaurants", "/branches"],
@@ -47,37 +48,61 @@ const PUBLIC_PATHS = [
   "/icons",
 ];
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  if (pathname === "/") {
-    const isAuth = request.cookies.get("is_authenticated")?.value === "true";
-    const role = request.cookies.get("user_role")?.value;
-    if (isAuth && role) {
-      const home = ROLE_HOME[role] ?? "/kitchen";
-      return NextResponse.redirect(new URL(home, request.url));
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
+// JWT verify — edge runtime uchun jose ishlatiladi
+const verifyToken = async (token: string): Promise<{ role: string } | null> => {
+  try {
+    const secret = new TextEncoder().encode(
+      process.env.NEXT_PUBLIC_JWT_ACCESS_SECRET,
+    );
+    const { payload } = await jwtVerify(token, secret);
+    return { role: payload.role as string };
+  } catch {
+    return null;
   }
+};
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  const isAuth = request.cookies.get("is_authenticated")?.value === "true";
-  const role = request.cookies.get("user_role")?.value;
+  // Access token — cookie dan olamiz (auth.store da ham saqlaymiz — quyida)
+  const accessToken = request.cookies.get("access_token")?.value;
 
-  if (!isAuth || !role) {
+  if (pathname === "/") {
+    if (!accessToken)
+      return NextResponse.redirect(new URL("/login", request.url));
+    const payload = await verifyToken(accessToken);
+    if (!payload) return NextResponse.redirect(new URL("/login", request.url));
+    const home = ROLE_HOME[payload.role] ?? "/kitchen";
+    return NextResponse.redirect(new URL(home, request.url));
+  }
+
+  if (!accessToken) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  const allowedRoutes = ROLE_ROUTES[role] ?? ["/kitchen", "/menumanage", "/earnings"];
+  const payload = await verifyToken(accessToken);
+  if (!payload) {
+    // Token yaroqsiz — login ga
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("from", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  const allowedRoutes = ROLE_ROUTES[payload.role] ?? [
+    "/kitchen",
+    "/menumanage",
+    "/earnings",
+  ];
   const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
 
   if (!hasAccess) {
-    const home = ROLE_HOME[role] ?? "/kitchen";
+    const home = ROLE_HOME[payload.role] ?? "/kitchen";
     return NextResponse.redirect(new URL(home, request.url));
   }
 

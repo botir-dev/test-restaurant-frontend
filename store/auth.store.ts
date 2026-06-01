@@ -14,8 +14,6 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 
-// Faqat o'qish uchun — HttpOnly bo'lgach JS o'qiy olmaydi,
-// lekin backend set qilguncha client-side ishlatamiz
 const getCookie = (name: string): string | null => {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(
@@ -27,7 +25,7 @@ const getCookie = (name: string): string | null => {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  accessToken: string | null; // localStorage emas — memory
+  accessToken: string | null;
   setUser: (user: User) => void;
   setAccessToken: (token: string) => void;
   logout: () => void;
@@ -54,8 +52,8 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
 
       setUser: (user) => {
-        // access_token — faqat memory (XSS dan himoya)
-        // refresh_token — cookie (backend HttpOnly set qilguncha client-side)
+        // access_token — memory + cookie (middleware JWT verify uchun)
+        setCookie("access_token", user.access_token, 1); // 1 kun — qisqa muddat
         setCookie("refresh_token", user.refresh_token, 7);
         setCookie("user_role", user.role, 7);
         setCookie("is_authenticated", "true", 7);
@@ -70,6 +68,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setAccessToken: (token) => {
+        // Memory + cookie ga yangilash — middleware uchun
+        setCookie("access_token", token, 1);
         set({ accessToken: token });
       },
 
@@ -80,13 +80,14 @@ export const useAuthStore = create<AuthState>()(
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              // Backend HttpOnly cookie ishlatgach credentials: "include" yetarli
+              credentials: "include",
               body: JSON.stringify({ refresh_token: refreshToken }),
             });
           }
         } catch {
           // Tarmoq xatosida ham tozalanadi
         } finally {
+          deleteCookie("access_token");
           deleteCookie("refresh_token");
           deleteCookie("user_role");
           deleteCookie("is_authenticated");
