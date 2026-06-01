@@ -415,6 +415,65 @@ export default function ReportsPage() {
         pdf.setTextColor(30);
         pdf.text(allText.slice(0, 1500), marginX, 28, { maxWidth: usableW });
       }
+      // expenses-30 uchun umumiy harajatni PDF oxiriga qo'shamiz
+      if (activeType === "expenses-30" && data) {
+        if (curY + 60 > pageH - 10) {
+          pdf.addPage();
+          curY = 14;
+        }
+        curY += 4;
+        pdf.setFillColor(30, 30, 30);
+        pdf.rect(marginX, curY, usableW, 8, "F");
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(255, 220, 50);
+        pdf.text("UMUMIY HARAJAT (OXIRGI 30 KUN)", marginX + 2, curY + 5.5);
+        curY += 10;
+
+        const expLines = [
+          [
+            "Ombor harajati:",
+            `${Number(data.inventory?.total || 0).toLocaleString()} so'm`,
+          ],
+          [
+            "Maoshlar:",
+            `${Number(data.salary?.total || 0).toLocaleString()} so'm`,
+          ],
+          [
+            "Kommunal xarajatlar:",
+            `${Number(data.utilities?.total || 0).toLocaleString()} so'm`,
+          ],
+          [
+            "QQS (12%):",
+            `${Number(data.orders?.vat_amount || 0).toLocaleString()} so'm`,
+          ],
+          [
+            "JAMI HARAJAT:",
+            `${Number(data.grand_total || 0).toLocaleString()} so'm`,
+          ],
+        ];
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(20, 20, 20);
+        expLines.forEach(([label, val], i) => {
+          const isBold = i === expLines.length - 1;
+          if (isBold) {
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(9);
+            pdf.setTextColor(0, 100, 0);
+          }
+          if (curY + 8 > pageH - 10) {
+            pdf.addPage();
+            curY = 14;
+          }
+          pdf.text(label, marginX + 2, curY + 5);
+          pdf.text(val, pageW - marginX - 2, curY + 5, { align: "right" });
+          pdf.setDrawColor(220, 220, 220);
+          pdf.line(marginX, curY + 7, pageW - marginX, curY + 7);
+          curY += 8;
+        });
+      }
+
       pdf.save(`${title.replace(/\s+/g, "_")}_${from || "hisobot"}.pdf`);
     } catch (err) {
       console.error("PDF xatosi:", err);
