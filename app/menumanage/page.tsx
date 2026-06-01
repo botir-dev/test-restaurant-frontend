@@ -48,7 +48,7 @@ function IngredientSelect({
 
   const selected = inventoryItems.find((i) => i.id === value);
   const filtered = inventoryItems.filter((i) =>
-    i.name.toLowerCase().includes(search.toLowerCase())
+    i.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const label = selected
@@ -59,10 +59,13 @@ function IngredientSelect({
     <div className="relative flex-1">
       <button
         type="button"
-        onClick={() => { setOpen((o) => !o); setSearch(""); }}
+        onClick={() => {
+          setOpen((o) => !o);
+          setSearch("");
+        }}
         className={clsx(
           "input w-full text-sm py-1.5 text-left flex items-center justify-between gap-1",
-          !selected && "text-gray-400"
+          !selected && "text-gray-400",
         )}
       >
         <span className="truncate">{label}</span>
@@ -72,7 +75,7 @@ function IngredientSelect({
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute z-40 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          <div className="absolute z-40 left-0 bottom-full mb-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
             <div className="p-2 border-b border-gray-100">
               <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
                 <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -91,10 +94,13 @@ function IngredientSelect({
                 )}
               </div>
             </div>
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-24 overflow-y-auto">
               <button
                 type="button"
-                onClick={() => { onChange(""); setOpen(false); }}
+                onClick={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
                 className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50"
               >
                 -- Ingredient tanlang --
@@ -106,10 +112,15 @@ function IngredientSelect({
                   <button
                     key={inv.id}
                     type="button"
-                    onClick={() => { onChange(inv.id); setOpen(false); setSearch(""); }}
+                    onClick={() => {
+                      onChange(inv.id);
+                      setOpen(false);
+                      setSearch("");
+                    }}
                     className={clsx(
                       "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between",
-                      inv.id === value && "bg-green-50 text-green-700 font-medium"
+                      inv.id === value &&
+                        "bg-green-50 text-green-700 font-medium",
                     )}
                   >
                     <span>{inv.name}</span>
@@ -756,7 +767,8 @@ export default function MenuManagePage() {
                           ? r.inventory_custom_unit || "?"
                           : r.inventory_unit || "";
                       const qty = parseFloat(r.quantity as any);
-                      const costPerUnit = parseFloat((r as any).cost_price as any) || 0;
+                      const costPerUnit =
+                        parseFloat((r as any).cost_price as any) || 0;
                       const lineCost = qty * costPerUnit;
                       return (
                         <div
@@ -787,24 +799,26 @@ export default function MenuManagePage() {
                   </div>
 
                   {/* Jami tannarx — faqat manager */}
-                  {user?.role === "manager" && (() => {
-                    const totalCost = item.recipe.reduce((sum, r) => {
-                      const qty = parseFloat(r.quantity as any);
-                      const cp = parseFloat((r as any).cost_price as any) || 0;
-                      return sum + qty * cp;
-                    }, 0);
-                    if (totalCost <= 0) return null;
-                    return (
-                      <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-500">
-                          Tannarx (1 porsiya)
-                        </span>
-                        <span className="text-sm font-bold text-green-700">
-                          {totalCost.toLocaleString("uz-UZ")} so'm
-                        </span>
-                      </div>
-                    );
-                  })()}
+                  {user?.role === "manager" &&
+                    (() => {
+                      const totalCost = item.recipe.reduce((sum, r) => {
+                        const qty = parseFloat(r.quantity as any);
+                        const cp =
+                          parseFloat((r as any).cost_price as any) || 0;
+                        return sum + qty * cp;
+                      }, 0);
+                      if (totalCost <= 0) return null;
+                      return (
+                        <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-500">
+                            Tannarx (1 porsiya)
+                          </span>
+                          <span className="text-sm font-bold text-green-700">
+                            {totalCost.toLocaleString("uz-UZ")} so'm
+                          </span>
+                        </div>
+                      );
+                    })()}
                 </div>
               )}
             </div>
