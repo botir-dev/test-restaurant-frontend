@@ -2,39 +2,27 @@
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/auth.store";
 
+/**
+ * AuthProvider — faqat accessToken memory ga tiklanganligini ta'minlaydi.
+ *
+ * Silent refresh endi middleware → /silent-refresh sahifasi orqali ishlaydi.
+ * Bu provider faqat: store da accessToken yo'q bo'lsa cookie dan oladi.
+ */
 export default function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, setAccessToken, logout } = useAuthStore();
-  const didRefresh = useRef(false);
+  const { isAuthenticated, accessToken } = useAuthStore();
+  const initialized = useRef(false);
 
   useEffect(() => {
-    // Faqat bir marta — sahifa yuklanganda
-    if (didRefresh.current) return;
-    didRefresh.current = true;
+    if (initialized.current) return;
+    initialized.current = true;
 
-    // isAuthenticated bor lekin accessToken yo'q — sahifa yangilangan
-    const accessToken = useAuthStore.getState().accessToken;
-    if (isAuthenticated && !accessToken) {
-      // Silent refresh — refresh_token cookie avtomatik ketadi
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({}),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.data?.access_token) {
-            setAccessToken(data.data.access_token);
-          } else {
-            logout();
-          }
-        })
-        .catch(() => logout());
-    }
+    // accessToken memory da bor — hech narsa qilmaymiz
+    // accessToken yo'q va isAuthenticated ham yo'q — silent-refresh sahifasi handle qilgan
+    // Bu provider faqat log/monitoring uchun qoldirilgan
   }, []);
 
   return <>{children}</>;
