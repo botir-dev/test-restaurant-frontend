@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import QueryProvider from "@/components/providers/QueryProvider";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import ServiceWorkerInit from "@/components/ServiceWorkerInit";
+import AuthProvider from "@/components/providers/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Restoran Boshqaruv Tizimi",
@@ -32,29 +33,31 @@ export default function RootLayout({
     <html lang="uz">
       <body>
         <QueryProvider>
-          <ServiceWorkerInit />
-          {children}
-          <OfflineIndicator />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: { borderRadius: "12px", fontSize: "14px" },
-              success: {
-                style: {
-                  background: "#f0fdf4",
-                  color: "#166534",
-                  border: "1px solid #bbf7d0",
+          <AuthProvider>
+            <ServiceWorkerInit />
+            {children}
+            <OfflineIndicator />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: { borderRadius: "12px", fontSize: "14px" },
+                success: {
+                  style: {
+                    background: "#f0fdf4",
+                    color: "#166534",
+                    border: "1px solid #bbf7d0",
+                  },
                 },
-              },
-              error: {
-                style: {
-                  background: "#fef2f2",
-                  color: "#991b1b",
-                  border: "1px solid #fecaca",
+                error: {
+                  style: {
+                    background: "#fef2f2",
+                    color: "#991b1b",
+                    border: "1px solid #fecaca",
+                  },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>
