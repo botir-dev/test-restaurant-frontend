@@ -1,6 +1,6 @@
 {
-  "name": "Restoran Tizimi",
-  "short_name": "Restoran",
+  "name": "RestOops!",
+  "short_name": "Oops!",
   "description": "Restoran boshqaruv tizimi",
   "start_url": "/",
   "display": "standalone",

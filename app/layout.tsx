@@ -7,7 +7,7 @@ import ServiceWorkerInit from "@/components/ServiceWorkerInit";
 import AuthProvider from "@/components/providers/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "Restoran Boshqaruv Tizimi",
+  title: "RestOops!",
   description: "Restoran boshqaruv tizimi",
   manifest: "/manifest.json",
   appleWebApp: {
