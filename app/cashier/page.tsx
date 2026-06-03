@@ -420,7 +420,7 @@ export default function CashierPage() {
   const { data: tableData, isLoading: tableLoading } = useQuery({
     queryKey: ["orders", "payment_pending"],
     queryFn: () => orderApi.getAll({ status: "payment_pending" }),
-    staleTime: 30 * 1000,
+    staleTime: 0,
     gcTime: 60 * 60 * 1000,
     refetchInterval: isOnline ? 15000 : false,
   });
