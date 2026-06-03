@@ -18,6 +18,7 @@ import {
   ChevronUp,
   FlaskConical,
   Package,
+  Tags,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -481,6 +482,125 @@ function MenuModal({
   );
 }
 
+// ─── CUSTOM TUR MODAL ─────────────────────────────────────────
+function CustomTypeModal({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const [label, setLabel] = useState("");
+  const [key, setKey] = useState("");
+  const [keyManual, setKeyManual] = useState(false);
+
+  // Label dan avtomatik key generatsiya
+  const handleLabelChange = (val: string) => {
+    setLabel(val);
+    if (!keyManual) {
+      const autoKey = val
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 30);
+      setKey(autoKey);
+    }
+  };
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      customProductTypeApi.create({ key: key.trim(), label: label.trim() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["custom-product-types"] });
+      toast.success("Yangi tur qo'shildi!");
+      onClose();
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || "Xato"),
+  });
+
+  const isValid = label.trim().length > 0 && /^[a-z0-9_]+$/.test(key.trim());
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm animate-slideUp">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+              <Tags className="w-4 h-4 text-green-600" />
+            </div>
+            <h3 className="font-bold text-gray-900">Yangi tur qo'shish</h3>
+          </div>
+          <button onClick={onClose}>
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="label">Tur nomi *</label>
+            <input
+              className="input"
+              placeholder="Masalan: Salatlar, Souslar..."
+              value={label}
+              maxLength={50}
+              autoFocus
+              onChange={(e) => handleLabelChange(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="label">
+              Kalit so'z (key) *
+              <span className="text-xs text-gray-400 font-normal ml-1">
+                — o'zgartirilmaydi
+              </span>
+            </label>
+            <input
+              className={clsx(
+                "input font-mono text-sm",
+                key && !/^[a-z0-9_]+$/.test(key) && "border-red-400",
+              )}
+              placeholder="salad, sous_qizil..."
+              value={key}
+              maxLength={30}
+              onChange={(e) => {
+                setKeyManual(true);
+                setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+              }}
+            />
+            {key && !/^[a-z0-9_]+$/.test(key) && (
+              <p className="text-xs text-red-500 mt-1">
+                Faqat kichik harf, raqam va _ ishlatilsin
+              </p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">
+              Faqat kichik lotin harflari, raqamlar va _ (pastki chiziq)
+            </p>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onClose}
+              className="btn-secondary flex-1 justify-center"
+            >
+              Bekor
+            </button>
+            <button
+              onClick={() => {
+                if (isValid) mutation.mutate();
+              }}
+              disabled={!isValid || mutation.isPending}
+              className="btn-primary flex-1 justify-center disabled:opacity-50"
+            >
+              {mutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              Qo'shish
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ASOSIY SAHIFA ────────────────────────────────────────────
 export default function MenuManagePage() {
   const { user } = useAuthStore();
@@ -488,6 +608,7 @@ export default function MenuManagePage() {
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState("all");
   const [showModal, setShowModal] = useState(false);
+  const [showCustomTypeModal, setShowCustomTypeModal] = useState(false);
   const [editItem, setEditItem] = useState<MenuItem | undefined>();
   const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -601,15 +722,23 @@ export default function MenuManagePage() {
           </p>
         </div>
         {canEdit && (
-          <button
-            onClick={() => {
-              setEditItem(undefined);
-              setShowModal(true);
-            }}
-            className="btn-primary text-sm py-2 px-3"
-          >
-            <Plus className="w-4 h-4" /> Taom qo'shish
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCustomTypeModal(true)}
+              className="btn-secondary text-sm py-2 px-3"
+            >
+              <Tags className="w-4 h-4" /> Tur qo'shish
+            </button>
+            <button
+              onClick={() => {
+                setEditItem(undefined);
+                setShowModal(true);
+              }}
+              className="btn-primary text-sm py-2 px-3"
+            >
+              <Plus className="w-4 h-4" /> Taom qo'shish
+            </button>
+          </div>
         )}
       </div>
 
@@ -907,6 +1036,10 @@ export default function MenuManagePage() {
             setEditItem(undefined);
           }}
         />
+      )}
+
+      {showCustomTypeModal && (
+        <CustomTypeModal onClose={() => setShowCustomTypeModal(false)} />
       )}
     </div>
   );
