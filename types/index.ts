@@ -45,6 +45,7 @@ export interface User {
   restaurant_id: string | null;
   branch_id: string | null;
   extra_permissions: ProductType[];
+  product_type_key?: string; // Custom rol uchun — DB dan olinadi
   access_token: string;
   refresh_token: string;
 }

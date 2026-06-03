@@ -496,6 +496,43 @@ export default function MenuManagePage() {
     user?.role || "",
   );
 
+  const NON_PREPARER = [
+    "manager",
+    "waiter",
+    "cashier",
+    "storekeeper",
+    "super_admin",
+  ];
+  const isPreparer = user?.role ? !NON_PREPARER.includes(user.role) : false;
+
+  // Tayyorlovchining ruxsat etilgan mahsulot turlari
+  const ROLE_PRODUCT_MAP: Record<string, string> = {
+    cook: "food",
+    baker: "bread",
+    somsa_maker: "somsa",
+    grill_master: "grill",
+    turkish_cook: "turkish",
+    bartender: "drink",
+    icecream_maker: "icecream",
+    tea_master: "tea",
+  };
+  const preparerAllowedTypes: string[] = user
+    ? [
+        // Standart rol (cook, baker, ...)
+        ...(user.role && ROLE_PRODUCT_MAP[user.role]
+          ? [ROLE_PRODUCT_MAP[user.role]]
+          : []),
+        // Custom rol — auth vaqtida JWT ga qo'shilgan product_type_key
+        ...(user.product_type_key ? [user.product_type_key] : []),
+        // Qo'shimcha ruxsatlar (extra_permissions)
+        ...(user.extra_permissions || []),
+      ]
+    : [];
+
+  // Mavjudlikni o'zgartirish mumkinmi (manager/storekeeper/super_admin yoki o'z turi)
+  const canToggle = (itemType: string) =>
+    canEdit || (isPreparer && preparerAllowedTypes.includes(itemType));
+
   // Barcha inventar itemlarni olish (retsept uchun)
   const { data: invData } = useQuery({
     queryKey: ["inventory-all"],
@@ -600,37 +637,44 @@ export default function MenuManagePage() {
 
       {/* Tur filterlari */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        <button
-          onClick={() => {
-            setActiveType("all");
-            setPage(1);
-          }}
-          className={clsx(
-            "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all",
-            activeType === "all"
-              ? "bg-green-600 text-white"
-              : "bg-white border border-gray-200 text-gray-600",
-          )}
-        >
-          Hammasi
-        </button>
-        {allTypesForSelect.map(({ key, label }) => (
+        {/* Tayyorlovchi rollar faqat o'z turlarini ko'radi */}
+        {!isPreparer && (
           <button
-            key={key}
             onClick={() => {
-              setActiveType(key);
+              setActiveType("all");
               setPage(1);
             }}
             className={clsx(
               "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all",
-              activeType === key
+              activeType === "all"
                 ? "bg-green-600 text-white"
-                : "bg-white border border-gray-200 text-gray-600 hover:border-green-300",
+                : "bg-white border border-gray-200 text-gray-600",
             )}
           >
-            {label}
+            Hammasi
           </button>
-        ))}
+        )}
+        {allTypesForSelect
+          .filter(
+            ({ key }) => !isPreparer || preparerAllowedTypes.includes(key),
+          )
+          .map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => {
+                setActiveType(key);
+                setPage(1);
+              }}
+              className={clsx(
+                "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all",
+                activeType === key
+                  ? "bg-green-600 text-white"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-green-300",
+              )}
+            >
+              {label}
+            </button>
+          ))}
       </div>
 
       {isLoading ? (
@@ -713,22 +757,24 @@ export default function MenuManagePage() {
 
                 {/* Tugmalar */}
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() =>
-                      toggleMutation.mutate({
-                        id: item.id,
-                        val: !item.is_available,
-                      })
-                    }
-                    className={clsx(
-                      "text-xs font-semibold py-1.5 px-2 rounded-lg transition-all",
-                      item.is_available
-                        ? "bg-green-50 text-green-700 hover:bg-green-100"
-                        : "bg-red-50 text-red-600 hover:bg-red-100",
-                    )}
-                  >
-                    {item.is_available ? "Mavjud" : "Yo'q"}
-                  </button>
+                  {canToggle(item.type) && (
+                    <button
+                      onClick={() =>
+                        toggleMutation.mutate({
+                          id: item.id,
+                          val: !item.is_available,
+                        })
+                      }
+                      className={clsx(
+                        "text-xs font-semibold py-1.5 px-2 rounded-lg transition-all",
+                        item.is_available
+                          ? "bg-green-50 text-green-700 hover:bg-green-100"
+                          : "bg-red-50 text-red-600 hover:bg-red-100",
+                      )}
+                    >
+                      {item.is_available ? "Mavjud" : "Yo'q"}
+                    </button>
+                  )}
                   {canEdit && (
                     <>
                       <button

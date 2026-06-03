@@ -105,8 +105,12 @@ export const useAuthStore = create<AuthState>()(
         if (!user) return false;
         if (user.role === "manager") return true;
         const mainType = ROLE_PRODUCT_MAP[user.role];
+        // Custom rol uchun product_type_key ni tekshirish
+        const customType = user.product_type_key;
         return (
-          mainType === type || (user.extra_permissions || []).includes(type)
+          mainType === type ||
+          customType === type ||
+          (user.extra_permissions || []).includes(type)
         );
       },
     }),
