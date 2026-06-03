@@ -200,6 +200,10 @@ export default function WebSocketProvider() {
             qc.invalidateQueries({ queryKey: ["tables"] });
             notify("Buyurtma tayyor! Stolga olib boring.", "✅", 6000);
             break;
+          case "item_ready":
+            qc.invalidateQueries({ queryKey: ["orders"] });
+            notify(data?.message || "Mahsulot tayyor!", "🔔", 4000);
+            break;
           default:
             break;
         }
