@@ -366,7 +366,15 @@ export default function SettingsPage() {
             onChange={(e) => setTelegramChatId(e.target.value)}
           />
           <p className="text-xs text-gray-400">
-            Chat ID ni topish: botga /start yuboring, keyin{" "}
+            Chat ID ni topish: avval,{" "}
+            <a
+              href="https://t.me/rbtnotifications_bot"
+              target="_blank"
+              className="text-blue-500 underline"
+            >
+              @rbtnotifications_bot
+            </a>{" "}
+            ga /start yuboring, keyin{" "}
             <a
               href="https://t.me/userinfobot"
               target="_blank"
