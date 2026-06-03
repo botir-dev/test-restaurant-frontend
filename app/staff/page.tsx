@@ -363,6 +363,9 @@ function StaffDetailModal({
     extra_permissions: safeParsePermissions(staff.extra_permissions),
     monthly_salary: staff.monthly_salary ? String(staff.monthly_salary) : "",
     use_commission: staff.use_commission || false,
+    telegram_chat_id: staff.telegram_chat_id
+      ? String(staff.telegram_chat_id)
+      : "",
   });
   const isManager = staff.role === "manager";
   const [showPass, setShowPass] = useState(false);
@@ -389,6 +392,9 @@ function StaffDetailModal({
             ? parseFloat(form.monthly_salary)
             : null,
         use_commission: form.use_commission,
+        telegram_chat_id: form.telegram_chat_id
+          ? form.telegram_chat_id.trim()
+          : null,
         ...(form.password ? { password: form.password } : {}),
       }),
     onSuccess: () => {
@@ -431,6 +437,21 @@ function StaffDetailModal({
                 setForm((p) => ({ ...p, phone: e.target.value }))
               }
             />
+          </div>
+          <div>
+            <label className="label">Telegram Chat ID</label>
+            <input
+              className="input"
+              placeholder="123456789"
+              maxLength={20}
+              value={form.telegram_chat_id}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, telegram_chat_id: e.target.value }))
+              }
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Xodim @userinfobot ga /start yozsa o'z ID sini biladi
+            </p>
           </div>
           <div>
             <label className="label">Yangi parol (ixtiyoriy)</label>
@@ -623,6 +644,7 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
     password: "",
     role: "waiter" as string,
     extra_permissions: [] as string[],
+    telegram_chat_id: "",
   });
   const [showPass, setShowPass] = useState(false);
 
@@ -643,6 +665,9 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
         password: form.password,
         role: form.role as Role,
         extra_permissions: form.extra_permissions as ProductType[],
+        telegram_chat_id: form.telegram_chat_id
+          ? form.telegram_chat_id.trim()
+          : null,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["staff"] });
@@ -697,6 +722,21 @@ function NewStaffModal({ onClose }: { onClose: () => void }) {
                 setForm((p) => ({ ...p, phone: e.target.value }))
               }
             />
+          </div>
+          <div>
+            <label className="label">Telegram Chat ID</label>
+            <input
+              className="input"
+              placeholder="123456789"
+              maxLength={20}
+              value={form.telegram_chat_id}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, telegram_chat_id: e.target.value }))
+              }
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Xodim @userinfobot ga /start yozsa o'z ID sini biladi
+            </p>
           </div>
           <div>
             <label className="label">Parol *</label>

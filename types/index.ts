@@ -77,6 +77,7 @@ export interface Staff {
   is_active: boolean;
   monthly_salary?: number | null;
   use_commission?: boolean;
+  telegram_chat_id?: string | null;
   created_at: string;
 }
 
