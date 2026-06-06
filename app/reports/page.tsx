@@ -687,7 +687,10 @@ function RevenueReport({ data }: any) {
           label="Jami daromad"
           value={formatPrice(s.total_revenue)}
         />
-        <SummaryCard label="O'rtacha chek" value={formatPrice(s.avg_order)} />
+        <SummaryCard
+          label="O'rtacha chek"
+          value={formatPrice(Math.round(s.avg_order))}
+        />
         <SummaryCard label="Naqd" value={formatPrice(s.cash)} />
         <SummaryCard label="Karta" value={formatPrice(s.card)} />
         <SummaryCard label="QR" value={formatPrice(s.qr)} />

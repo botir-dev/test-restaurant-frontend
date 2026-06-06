@@ -132,7 +132,7 @@ export default function DashboardPage() {
           },
           {
             label: "O'rtacha chek",
-            value: formatPrice(rev?.avg_order || 0),
+            value: formatPrice(Math.round(rev?.avg_order) || 0),
             icon: Users,
             color: "text-purple-600",
             bg: "bg-purple-50",
