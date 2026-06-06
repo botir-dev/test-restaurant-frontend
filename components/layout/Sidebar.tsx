@@ -242,7 +242,7 @@ export default function Sidebar() {
             <p className="font-bold text-gray-900 text-sm truncate">
               {restaurantName} Tizimi
             </p>
-            <span className="text-white bg-[#CCA121] px-3 py-1 flex items-center justify-center font-serif w-fit text-[17px] rounded-[8px]">
+            <span className="text-white bg-[#CCA121] px-2 py- flex items-center justify-center font-serif w-fit text-[12px] rounded-[4px]">
               {" "}
               Beta{" "}
             </span>
