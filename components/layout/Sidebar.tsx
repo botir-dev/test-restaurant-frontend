@@ -238,9 +238,16 @@ export default function Sidebar() {
       <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
         <LogoIcon size="md" />
         <div className="min-w-0">
-          <p className="font-bold text-gray-900 text-sm truncate">
-            {restaurantName} Tizimi
-          </p>
+          <div className="flex gap-2 items-center">
+            <p className="font-bold text-gray-900 text-sm truncate">
+              {restaurantName} Tizimi
+            </p>
+            <span className="text-white bg-[#CCA121] px-3 py-1 flex items-center justify-center font-serif w-fit text-[17px] rounded-[8px]">
+              {" "}
+              Beta{" "}
+            </span>
+          </div>
+
           <p className="text-xs text-gray-500 truncate">{user?.full_name}</p>
         </div>
       </div>
