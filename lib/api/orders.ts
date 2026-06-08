@@ -27,6 +27,15 @@ export const orderApi = {
     guest_count?: number;
   }) => api.post("/public/orders", data),
 
+  getTableStatus: (branch_id: string, table_id: string) =>
+    api.get(`/public/table-status/${branch_id}/${table_id}`),
+
+  addItemsToOrder: (data: {
+    order_id: string;
+    branch_id: string;
+    items: { product_id: string; quantity: number }[];
+  }) => api.post("/public/orders/add-items", data),
+
   getPublicWaiters: (branch_id: string) =>
     api.get(`/public/waiters/${branch_id}`),
 };

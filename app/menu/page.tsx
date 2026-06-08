@@ -15,10 +15,61 @@ import {
   ChevronRight,
   X,
   User,
+  PlusCircle,
 } from "lucide-react";
 import clsx from "clsx";
 
-// ─── Asosiy menyu komponenti ───────────────────────────────────────────────
+// ─── "Buyurtmaga qo'shmoqchimisiz?" modal ─────────────────────
+function AddToExistingModal({
+  waiterName,
+  onYes,
+  onNo,
+}: {
+  waiterName: string | null;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <PlusCircle className="w-8 h-8 text-green-600" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Buyurtma allaqachon bor
+        </h2>
+        <p className="text-gray-500 text-sm mb-1">
+          Bu stolda aktiv buyurtma mavjud.
+          {waiterName && (
+            <span className="font-semibold text-gray-700">
+              {" "}
+              Ofitsiant: {waiterName}
+            </span>
+          )}
+        </p>
+        <p className="text-gray-500 text-sm mb-6">
+          Yana biror narsa qo'shmoqchimisiz?
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onNo}
+            className="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-colors"
+          >
+            Yo'q
+          </button>
+          <button
+            onClick={onYes}
+            className="flex-1 py-3 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors"
+          >
+            Ha, qo'shish
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Asosiy menyu komponenti ───────────────────────────────────
 function MenuContent() {
   const params = useSearchParams();
   const branchId = params.get("branch") || "";
@@ -27,18 +78,59 @@ function MenuContent() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [activeType, setActiveType] = useState("all");
-  const [step, setStep] = useState<"menu" | "waiter" | "success">("menu");
 
+  // step:
+  // "checking"   — stol holati tekshirilmoqda (boshlang'ich)
+  // "ask_add"    — stol band, "qo'shmoqchimisiz?" modal
+  // "menu"       — menyu ko'rinmoqda (yangi yoki qo'shish rejimi)
+  // "waiter"     — yangi buyurtma uchun ofitsiant tanlash
+  // "success"    — muvaffaqiyat
+  const [step, setStep] = useState<
+    "checking" | "ask_add" | "menu" | "waiter" | "success"
+  >("checking");
+  const [addMode, setAddMode] = useState(false); // true = mavjud buyurtmaga qo'shish
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [activeWaiterId, setActiveWaiterId] = useState<string | null>(null);
+  const [activeWaiterName, setActiveWaiterName] = useState<string | null>(null);
+
+  // Stol holatini tekshirish — sahifa ochilganda
+  const { isLoading: statusLoading } = useQuery({
+    queryKey: ["table-status", branchId, tableId],
+    queryFn: () => orderApi.getTableStatus(branchId, tableId),
+    enabled: !!branchId && !!tableId,
+    retry: false,
+    refetchOnWindowFocus: false,
+    onSuccess: (res: any) => {
+      const d = res?.data?.data;
+      if (d?.has_active_order && d?.order_id) {
+        // Aktiv buyurtma bor — modal ko'rsat
+        setActiveOrderId(d.order_id);
+        setActiveWaiterId(d.waiter_id);
+        setActiveWaiterName(d.waiter_name);
+        setStep("ask_add");
+      } else {
+        // Bo'sh stol — to'g'ridan menyu
+        setStep("menu");
+      }
+    },
+    onError: () => {
+      // Tekshirib bo'lmasa ham menyuni ko'rsat
+      setStep("menu");
+    },
+  });
+
+  // Menyu ma'lumotlari
   const { data: menuData, isLoading: menuLoading } = useQuery({
     queryKey: ["public-menu", branchId],
     queryFn: () => productApi.getPublicMenu(branchId, { limit: 200 }),
     enabled: !!branchId,
   });
 
+  // Ofitsiantlar (faqat yangi buyurtma rejimida kerak)
   const { data: waitersData } = useQuery({
     queryKey: ["public-waiters", branchId],
     queryFn: () => orderApi.getPublicWaiters(branchId),
-    enabled: !!branchId,
+    enabled: !!branchId && !addMode,
   });
 
   const menuGrouped = menuData?.data?.data || {};
@@ -58,23 +150,18 @@ function MenuContent() {
       ? allProducts
       : ((menuGrouped[activeType] || []) as Product[]);
 
-  const addToCart = (product: Product) => {
-    setCart((prev: Record<string, number>) => ({
-      ...prev,
-      [product.id]: (prev[product.id] || 0) + 1,
-    }));
-  };
+  const addToCart = (product: Product) =>
+    setCart((prev) => ({ ...prev, [product.id]: (prev[product.id] || 0) + 1 }));
 
-  const removeFromCart = (productId: string) => {
-    setCart((prev: Record<string, number>) => {
+  const removeFromCart = (productId: string) =>
+    setCart((prev) => {
       const n = { ...prev, [productId]: (prev[productId] || 0) - 1 };
       if (n[productId] <= 0) delete n[productId];
       return n;
     });
-  };
 
-  // ─── Order mutation ────────────────────────────────────────────────────
-  const orderMutation = useMutation({
+  // ─── Yangi buyurtma ────────────────────────────────────────
+  const createOrderMutation = useMutation({
     mutationFn: () =>
       orderApi.createQrOrder({
         branch_id: branchId,
@@ -91,25 +178,85 @@ function MenuContent() {
       toast.error(e.response?.data?.message || "Xato yuz berdi"),
   });
 
-  // ─── Success ekrani ────────────────────────────────────────────────────
-  if (step === "success")
+  // ─── Mavjud buyurtmaga qo'shish ────────────────────────────
+  const addItemsMutation = useMutation({
+    mutationFn: () =>
+      orderApi.addItemsToOrder({
+        order_id: activeOrderId!,
+        branch_id: branchId,
+        items: cartItemsFiltered.map(([pid, qty]) => ({
+          product_id: pid,
+          quantity: qty,
+        })),
+      }),
+    onSuccess: () => setStep("success"),
+    onError: (e: any) =>
+      toast.error(e.response?.data?.message || "Xato yuz berdi"),
+  });
+
+  const handleSubmitOrder = () => {
+    if (addMode) {
+      addItemsMutation.mutate();
+    } else {
+      createOrderMutation.mutate();
+    }
+  };
+
+  const isPending = createOrderMutation.isPending || addItemsMutation.isPending;
+
+  // ─── Loading ekrani ────────────────────────────────────────
+  if (step === "checking" || statusLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafaf8]">
+        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+      </div>
+    );
+  }
+
+  // ─── "Qo'shmoqchimisiz?" modal ─────────────────────────────
+  if (step === "ask_add") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafaf8] p-4">
+        <AddToExistingModal
+          waiterName={activeWaiterName}
+          onYes={() => {
+            setAddMode(true);
+            setStep("menu");
+          }}
+          onNo={() => {
+            // Menyuni ko'rsatmay chiqish yoki oddiy yangi buyurtma
+            setAddMode(false);
+            setStep("menu");
+          }}
+        />
+      </div>
+    );
+  }
+
+  // ─── Success ekrani ────────────────────────────────────────
+  if (step === "success") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafaf8] p-6 text-center">
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-5">
           <UtensilsCrossed className="w-10 h-10 text-green-600" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Buyurtma qabul qilindi!
+          {addMode ? "Qo'shildi!" : "Buyurtma qabul qilindi!"}
         </h1>
-        <p className="text-gray-500 mb-1">Ofitsiant tez orada keladi.</p>
+        <p className="text-gray-500 mb-1">
+          {addMode
+            ? "Qo'shimcha buyurtmangiz oshxonaga yuborildi."
+            : "Ofitsiant tez orada keladi."}
+        </p>
         <p className="text-gray-400 text-sm">
           Xizmatdan foydalanganingiz uchun rahmat 🙏
         </p>
       </div>
     );
+  }
 
-  // ─── Ofitsiant tanlash ekrani ──────────────────────────────────────────
-  if (step === "waiter")
+  // ─── Ofitsiant tanlash (faqat yangi buyurtmada) ────────────
+  if (step === "waiter") {
     return (
       <div className="min-h-screen bg-[#fafaf8] p-4">
         <div className="max-w-sm mx-auto animate-fadeIn">
@@ -147,11 +294,11 @@ function MenuContent() {
             ))}
           </div>
           <button
-            onClick={() => orderMutation.mutate()}
-            disabled={!selectedWaiter || orderMutation.isPending}
+            onClick={() => createOrderMutation.mutate()}
+            disabled={!selectedWaiter || isPending}
             className="btn-primary w-full justify-center py-4 text-base"
           >
-            {orderMutation.isPending ? (
+            {isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <ShoppingBag className="w-5 h-5" />
@@ -161,8 +308,9 @@ function MenuContent() {
         </div>
       </div>
     );
+  }
 
-  // ─── Menyu ekrani ──────────────────────────────────────────────────────
+  // ─── Menyu ekrani ──────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#fafaf8] pb-32">
       {/* Header */}
@@ -173,8 +321,17 @@ function MenuContent() {
           </div>
           <div>
             <h1 className="font-bold text-gray-900">Menyu</h1>
-            <p className="text-xs text-gray-500">Stoldan buyurtma bering</p>
+            <p className="text-xs text-gray-500">
+              {addMode
+                ? "Mavjud buyurtmaga qo'shish"
+                : "Stoldan buyurtma bering"}
+            </p>
           </div>
+          {addMode && (
+            <span className="ml-auto text-xs bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full">
+              + Qo'shish rejimi
+            </span>
+          )}
         </div>
 
         {/* Type tabs */}
@@ -274,18 +431,34 @@ function MenuContent() {
       {cartItemsFiltered.length > 0 && (
         <div className="fixed bottom-4 left-4 right-4 z-40 animate-slideUp">
           <button
-            onClick={() => setStep("waiter")}
-            className="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between transition-all"
+            onClick={() => {
+              // Qo'shish rejimida yoki ofitsiant allaqachon bog'langan bo'lsa — to'g'ridan yuborish
+              if (addMode || activeWaiterId) {
+                handleSubmitOrder();
+              } else {
+                setStep("waiter");
+              }
+            }}
+            disabled={isPending}
+            className="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between transition-all disabled:opacity-60"
           >
             <div className="flex items-center gap-3">
               <span className="w-7 h-7 bg-white/20 rounded-xl flex items-center justify-center text-sm font-bold">
                 {cartItemsFiltered.reduce((s, [, q]) => s + (q as number), 0)}
               </span>
-              <span className="font-bold">Buyurtma berish</span>
+              <span className="font-bold">
+                {addMode ? "Buyurtmaga qo'shish" : "Buyurtma berish"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold">{formatPrice(total)}</span>
-              <ChevronRight className="w-5 h-5" />
+              {isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <span className="font-bold">{formatPrice(total)}</span>
+                  <ChevronRight className="w-5 h-5" />
+                </>
+              )}
             </div>
           </button>
         </div>
