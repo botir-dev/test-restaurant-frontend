@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { reportsApi } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import { jsPDF } from "jspdf";
 import {
@@ -225,18 +225,12 @@ export default function ReportsPage() {
     queryFn: () => {
       if (activeType === "expenses-30") {
         if (!expQuery) return Promise.resolve(null);
-        return api
-          .get(`/archive/reports/expenses-30${expQuery}`)
-          .then((r) => r.data.data);
+        return reportsApi.getExpenses30(expQuery);
       }
       if (activeType === "last-30-extended") {
-        return api
-          .get(`/archive/reports/last-30-extended`)
-          .then((r) => r.data.data);
+        return reportsApi.getLast30Extended();
       }
-      return api
-        .get(`/archive/reports/${activeType}${params}`)
-        .then((r) => r.data.data);
+      return reportsApi.get(activeType, params);
     },
     enabled: activeType === "expenses-30" ? !!expQuery : !!activeType,
   });

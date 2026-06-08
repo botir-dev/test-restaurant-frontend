@@ -1,6 +1,6 @@
 // Har bir funksiya: avval online urinib ko'radi,
 // muvaffaqiyatsiz bo'lsa offline ga yozadi
-import api from "./api";
+import api from "./api/client";
 import { addPendingAction } from "./offline-db";
 import { v4 as uuidv4 } from "uuid";
 

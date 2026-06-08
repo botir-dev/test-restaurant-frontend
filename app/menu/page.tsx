@@ -2,7 +2,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { productApi, orderApi } from "@/lib/services";
+import { productApi, orderApi } from "@/lib/api";
 import { PRODUCT_TYPE_LABELS, formatPrice } from "@/lib/utils";
 import type { Product, ProductType } from "@/types";
 import toast from "react-hot-toast";

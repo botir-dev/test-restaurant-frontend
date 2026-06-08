@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { tableApi } from "@/lib/services";
+import { tableApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import type { Table } from "@/types";
 import { QrCode, Printer, Download, Loader2 } from "lucide-react";

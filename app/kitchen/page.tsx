@@ -1,6 +1,6 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { orderApi } from "@/lib/services";
+import { orderApi } from "@/lib/api";
 import { prepareItemOffline } from "@/lib/offline-actions";
 import { useAuthStore } from "@/store/auth.store";
 import type { Order, OrderItem } from "@/types";

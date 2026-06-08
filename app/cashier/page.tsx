@@ -1,7 +1,14 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { orderApi, paymentApi, cashierOrderApi } from "@/lib/services";
+import {
+  orderApi,
+  paymentApi,
+  cashierOrderApi,
+  settingsApi,
+  menuApi,
+  cashierApi,
+} from "@/lib/api";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { completePaymentOffline } from "@/lib/offline-actions";
 import { formatPrice, formatDate } from "@/lib/utils";
@@ -22,7 +29,6 @@ import {
   ChefHat,
 } from "lucide-react";
 import clsx from "clsx";
-import api from "@/lib/api";
 
 const PAYMENT_TYPES: {
   key: PaymentType;
@@ -89,7 +95,7 @@ function PaymentModal({
 
   const { data: settingsData } = useQuery({
     queryKey: ["branch-settings"],
-    queryFn: () => api.get("/branches/me/settings"),
+    queryFn: () => settingsApi.getBranchSettings(),
     staleTime: 60 * 60 * 1000,
   });
 
@@ -246,8 +252,7 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
 
   const { data: menuData } = useQuery({
     queryKey: ["menu-all"],
-    queryFn: () =>
-      api.get("/menu", { params: { limit: 200, is_available: true } }),
+    queryFn: () => menuApi.getAll({ limit: 200, is_available: true }),
   });
   const menuItems = menuData?.data?.data?.items || menuData?.data?.data || [];
   const filtered = menuItems.filter((item: any) =>
@@ -427,14 +432,14 @@ export default function CashierPage() {
 
   const { data: cashierData, isLoading: cashierLoading } = useQuery({
     queryKey: ["cashier-orders"],
-    queryFn: () => api.get("/orders/cashier"),
+    queryFn: () => cashierApi.getOrders(),
     staleTime: 10 * 1000,
     refetchInterval: isOnline ? 10000 : false,
   });
 
   const { data: settingsData } = useQuery({
     queryKey: ["branch-settings"],
-    queryFn: () => api.get("/branches/me/settings"),
+    queryFn: () => settingsApi.getBranchSettings(),
     staleTime: 60 * 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
   });

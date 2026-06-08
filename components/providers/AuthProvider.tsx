@@ -1,48 +1,84 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
+import { LoadingScreen } from "@/components/ui";
+
+/** Login/Register kabi public sahifalar — token bo'lsa kirishni bloklash */
+const PUBLIC_ONLY_PATHS = ["/login", "/register"];
+/** Har kim ko'ra oladigan sahifalar (token tekshirilmaydi) */
+const ALWAYS_PUBLIC = ["/menu", "/qr", "/silent-refresh"];
+
+const ROLE_HOME: Record<string, string> = {
+  super_admin: "/admin",
+  manager: "/dashboard",
+  waiter: "/tables",
+  cashier: "/cashier",
+  storekeeper: "/inventory",
+};
 
 /**
- * AuthProvider — Ctrl+R da sahifa qayta yuklanganida
- * access_token memory da yo'q bo'lsa, refresh orqali tiklab,
- * keyin children ni render qiladi.
+ * AuthProvider — 3 ta vazifani bajaradi:
  *
- * Bu komponent children ni BLOKLAYDI — token tiklanmaguncha
- * hech bir sahifa component mount bo'lmaydi →
- * API so'rovlari ham ketmaydi → 401 loop yo'q!
+ * 1. Sahifa yangilanganda (Ctrl+R) access_token yo'q bo'lsa,
+ *    refresh endpoint orqali tiklab, keyin children render qiladi.
+ *    (children bloklanadi — 401 loop yo'q)
  *
- * MUHIM: isAuthenticated (localStorage) ga emas, har doim refresh
- * urinib ko'ramiz. Chunki:
- * - isAuthenticated false bo'lib qolishi mumkin (boshqa tab, clear storage)
- * - Lekin refresh_token cookie (HttpOnly, SameSite=None) hali amal qilayotgan bo'lishi mumkin
- * - Agar refresh_token yo'q bo'lsa, backend 401 qaytaradi — logout.
+ * 2. TOKEN BOR + /login yoki /register ga kirishga urinish →
+ *    foydalanuvchini uning role ga mos sahifaga yo'naltiradi.
+ *    (Qo'l bilan URL yozib /login ga o'tib bo'lmaydi)
+ *
+ * 3. Public sahifalar (/menu, /qr) uchun refresh urinilmaydi — tez yuklanadi.
  */
 export default function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { accessToken, setAccessToken, logout } = useAuthStore();
+  const { accessToken, setAccessToken, logout, user } = useAuthStore();
   const [ready, setReady] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const init = async () => {
-      // 1) accessToken memory da bor — hech narsa kerak emas
-      if (accessToken) {
+      const isAlwaysPublic = ALWAYS_PUBLIC.some((p) => pathname.startsWith(p));
+      const isPublicOnly = PUBLIC_ONLY_PATHS.some((p) =>
+        pathname.startsWith(p),
+      );
+
+      // ── Har kim ko'ra oladigan sahifalar — refresh ham shart emas ──
+      if (isAlwaysPublic) {
         setReady(true);
         return;
       }
 
-      // 2) Token yo'q — refresh urinib ko'ramiz (har doim).
-      //    isAuthenticated tekshirmaymiz — cross-site cookie (SameSite=None)
-      //    bilan refresh_token mavjudligini faqat backend biladi.
+      // ── Token bor ──────────────────────────────────────────────────
+      if (accessToken) {
+        // /login yoki /register ga token bilan kirmoqchi bo'lsa — yo'naltir
+        if (isPublicOnly && user) {
+          const home = ROLE_HOME[user.role] ?? "/kitchen";
+          router.replace(home);
+          return; // ready=false saqlanadi — redirect tugaguncha loading ko'rinadi
+        }
+        setReady(true);
+        return;
+      }
+
+      // ── Token yo'q, lekin public-only sahifada — ko'rsatamiz ──────
+      if (isPublicOnly) {
+        setReady(true);
+        return;
+      }
+
+      // ── Token yo'q — refresh urinib ko'ramiz ──────────────────────
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include", // refresh_token HttpOnly cookie avtomatik
+            credentials: "include",
             body: JSON.stringify({}),
           },
         );
@@ -55,31 +91,21 @@ export default function AuthProvider({
             logout();
           }
         } else {
-          // 401 — foydalanuvchi tizimga kirmagan yoki token muddati o'tgan
           logout();
         }
       } catch {
-        // Tarmoq xatosi — logout qilamiz
         logout();
       }
 
-      // 3) Hammasi bo'ldi — children ni ko'rsatish mumkin
       setReady(true);
     };
 
     init();
-  }, []); // faqat bir marta — mount da
+    // pathname o'zgarganda ham qayta ishga tushirish kerak
+    // (masalan, /login ga manual navigate qilinsa)
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Token tiklanguncha loading ko'rsatamiz
-  // Bu sahifa komponentlarining mount bo'lishini to'xtatadi
-  // → useQuery lar ishlamaydi → 401 so'rovlar ketmaydi
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafaf8]">
-        <div className="w-7 h-7 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!ready) return <LoadingScreen />;
 
   return <>{children}</>;
 }

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { archiveApi } from "@/lib/services";
+import { archiveApi } from "@/lib/api";
 import { formatPrice, formatDate } from "@/lib/utils";
 import type { ArchiveItem } from "@/types";
 import { Archive, Loader2, TrendingUp, Search, Filter } from "lucide-react";
@@ -229,18 +229,26 @@ export default function ArchivePage() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-gray-900">
-                      {item.order_type === "takeaway" ? "🛍 Saboy" :
-                       item.order_type === "delivery" ? "🚚 Dostavka" :
-                       `${item.table_number}-stol`}
+                      {item.order_type === "takeaway"
+                        ? "🛍 Saboy"
+                        : item.order_type === "delivery"
+                          ? "🚚 Dostavka"
+                          : `${item.table_number}-stol`}
                     </span>
                     {item.is_from_qr && (
-                      <span className="badge bg-purple-100 text-purple-700 text-xs">QR</span>
+                      <span className="badge bg-purple-100 text-purple-700 text-xs">
+                        QR
+                      </span>
                     )}
                     {item.order_type === "takeaway" && (
-                      <span className="badge bg-orange-100 text-orange-700 text-xs">Saboy</span>
+                      <span className="badge bg-orange-100 text-orange-700 text-xs">
+                        Saboy
+                      </span>
                     )}
                     {item.order_type === "delivery" && (
-                      <span className="badge bg-blue-100 text-blue-700 text-xs">Dostavka</span>
+                      <span className="badge bg-blue-100 text-blue-700 text-xs">
+                        Dostavka
+                      </span>
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">

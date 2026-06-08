@@ -1,7 +1,12 @@
 import axios from "axios";
 
+// Dynamic import — circular dependency va SSR muammolarini oldini olish uchun
+// (store -> api -> store zanjiri)
 const getStore = () => {
-  const { useAuthStore } = require("@/store/auth.store");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useAuthStore } = require("@/store/auth.store") as {
+    useAuthStore: { getState: () => { accessToken: string | null; setAccessToken: (t: string) => void; logout: () => void } };
+  };
   return useAuthStore.getState();
 };
 

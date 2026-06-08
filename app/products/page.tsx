@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { productApi, customProductTypeApi } from "@/lib/services";
+import { productApi, customProductTypeApi } from "@/lib/api";
 import {
   PRODUCT_TYPE_LABELS,
   ROLE_PRODUCT_MAP,

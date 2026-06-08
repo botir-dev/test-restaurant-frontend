@@ -2,11 +2,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
-import { authApi, customRoleApi } from "@/lib/services";
+import { authApi, customRoleApi, restaurantApi } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { ROLE_LABELS } from "@/lib/utils";
 import toast from "react-hot-toast";
-import api from "@/lib/api";
 import Image from "next/image";
 import {
   LayoutDashboard,
@@ -158,7 +157,7 @@ export default function Sidebar() {
   // Restoran ma'lumotini olish
   const { data: restaurantData } = useQuery({
     queryKey: ["restaurant-me"],
-    queryFn: () => api.get("/restaurants/me").then((r) => r.data?.data),
+    queryFn: () => restaurantApi.getMe().then((r) => r.data?.data),
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });

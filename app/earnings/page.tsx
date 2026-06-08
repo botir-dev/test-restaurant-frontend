@@ -1,4 +1,5 @@
 "use client";
+import { earningsApi, apiClient as api } from "@/lib/api";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth.store";
@@ -11,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import api from "@/lib/api";
 
 export default function EarningsPage() {
   const { user } = useAuthStore();
@@ -20,7 +20,7 @@ export default function EarningsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-earnings", date],
-    queryFn: () => api.get("/branches/me/earnings", { params: { date } }),
+    queryFn: () => earningsApi.getMyEarnings(date),
     enabled: !!user?.role && user?.role !== "manager",
   });
 

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { inventoryApi } from "@/lib/services";
+import { inventoryApi } from "@/lib/api";
 import type { InventoryItem, InventoryUnit } from "@/types";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
@@ -55,7 +55,7 @@ function AddStockModal({
   const qc = useQueryClient();
   const [amount, setAmount] = useState("");
   const [costPrice, setCostPrice] = useState(
-    item.cost_price ? String(item.cost_price) : ""
+    item.cost_price ? String(item.cost_price) : "",
   );
 
   const mutation = useMutation({
@@ -63,7 +63,7 @@ function AddStockModal({
       inventoryApi.addStock(
         item.id,
         parseFloat(amount),
-        costPrice ? parseFloat(costPrice) : null
+        costPrice ? parseFloat(costPrice) : null,
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
@@ -123,22 +123,27 @@ function AddStockModal({
               <div>
                 Yangi miqdor:{" "}
                 <strong>
-                  {(parseFloat(item.quantity as any) + parseFloat(amount)).toFixed(3)}{" "}
+                  {(
+                    parseFloat(item.quantity as any) + parseFloat(amount)
+                  ).toFixed(3)}{" "}
                   {unitDisplay(item)}
                 </strong>
               </div>
-              {costPrice && !isNaN(parseFloat(costPrice)) && parseFloat(costPrice) > 0 && (
-                <div className="text-green-600">
-                  Umumiy qiymat:{" "}
-                  <strong>
-                    {(
-                      (parseFloat(item.quantity as any) + parseFloat(amount)) *
-                      parseFloat(costPrice)
-                    ).toLocaleString("uz-UZ")}{" "}
-                    so'm
-                  </strong>
-                </div>
-              )}
+              {costPrice &&
+                !isNaN(parseFloat(costPrice)) &&
+                parseFloat(costPrice) > 0 && (
+                  <div className="text-green-600">
+                    Umumiy qiymat:{" "}
+                    <strong>
+                      {(
+                        (parseFloat(item.quantity as any) +
+                          parseFloat(amount)) *
+                        parseFloat(costPrice)
+                      ).toLocaleString("uz-UZ")}{" "}
+                      so'm
+                    </strong>
+                  </div>
+                )}
             </div>
           )}
           <div className="flex gap-2">
@@ -357,7 +362,11 @@ function InventoryModal({
 
           <div>
             <label className="label">
-              Tannarx (1 {form.unit === "custom" ? form.custom_unit || "birlik" : form.unit} uchun, so'm)
+              Tannarx (1{" "}
+              {form.unit === "custom"
+                ? form.custom_unit || "birlik"
+                : form.unit}{" "}
+              uchun, so'm)
             </label>
             <input
               className="input"
@@ -566,8 +575,7 @@ export default function InventoryPage() {
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center justify-between bg-blue-50 rounded-lg px-2 py-1">
                         <span className="text-xs text-blue-500 flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          1 {unit}
+                          <DollarSign className="w-3 h-3" />1 {unit}
                         </span>
                         <span className="text-xs font-semibold text-blue-700">
                           {Number(item.cost_price).toLocaleString("uz-UZ")} so'm
@@ -580,7 +588,8 @@ export default function InventoryPage() {
                             Jami
                           </span>
                           <span className="text-xs font-semibold text-purple-700">
-                            {Number(item.total_cost).toLocaleString("uz-UZ")} so'm
+                            {Number(item.total_cost).toLocaleString("uz-UZ")}{" "}
+                            so'm
                           </span>
                         </div>
                       )}

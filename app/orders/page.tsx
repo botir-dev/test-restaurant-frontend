@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { orderApi } from "@/lib/services";
-import api from "@/lib/api";
+import { orderApi, settingsApi } from "@/lib/api";
+
 import { useAuthStore } from "@/store/auth.store";
 import {
   ORDER_STATUS_LABELS,
@@ -56,7 +56,7 @@ export default function OrdersPage() {
   // ─── Xizmat haqi foizini settings dan olish ───────────────
   const { data: settingsData } = useQuery({
     queryKey: ["branch-settings"],
-    queryFn: () => api.get("/manager/settings"),
+    queryFn: () => settingsApi.get(),
   });
   const serviceFeePercent: number =
     parseFloat(settingsData?.data?.data?.service_fee_percent) || 0;

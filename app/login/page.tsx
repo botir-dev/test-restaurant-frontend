@@ -2,18 +2,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
-import { authApi } from "@/lib/services";
+import { authApi } from "@/lib/api";
 import toast from "react-hot-toast";
-import { Eye, EyeOff, UtensilsCrossed, LogIn, ShieldCheck } from "lucide-react";
-
-const ROLE_HOME: Record<string, string> = {
-  super_admin: "/admin",
-  manager: "/dashboard",
-  waiter: "/tables",
-  cashier: "/cashier",
-  storekeeper: "/products",
-};
-const getHome = (role: string) => ROLE_HOME[role] ?? "/kitchen";
+import {
+  Eye,
+  EyeOff,
+  UtensilsCrossed,
+  LogIn,
+  ShieldCheck,
+} from "@/components/icons";
+import { Button, Input, Spinner } from "@/components/ui";
+import { getHome } from "@/lib/auth-constants";
 
 const DEVICE_TOKEN_KEY = "rbt_device_token";
 
@@ -21,7 +20,6 @@ export default function LoginPage() {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
 
-  // ── Holat ──────────────────────────────────────────────
   const [step, setStep] = useState<"login" | "otp">("login");
   const [form, setForm] = useState({ username: "", password: "" });
   const [otp, setOtp] = useState("");
@@ -39,7 +37,6 @@ export default function LoginPage() {
     return () => clearTimeout(t);
   }, [otpTimer]);
 
-  // ── Login ──────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -63,28 +60,25 @@ export default function LoginPage() {
       const data = res.data.data as any;
 
       if (data.requires_2fa) {
-        // 2FA kerak — OTP ekraniga o'tish
         setUserId(data.user_id);
         setStep("otp");
-        setOtpTimer(300); // 5 daqiqa
+        setOtpTimer(300);
         toast.success("Telegram ga kod yuborildi! 📱");
       } else {
-        // To'g'ridan login
         handleSuccess(data);
       }
     } catch (err: any) {
       const msg = err.response?.data?.message;
-      const safe =
+      setErrorMsg(
         typeof msg === "string" && msg.length < 200
           ? msg
-          : "Xatolik yuz berdi. Qayta urinib ko'ring.";
-      setErrorMsg(safe);
+          : "Xatolik yuz berdi. Qayta urinib ko'ring.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // ── OTP tasdiqlash ─────────────────────────────────────
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -98,19 +92,17 @@ export default function LoginPage() {
       const res = await authApi.verifyOtp(userId, otp, trustDevice);
       const data = res.data.data as any;
 
-      // Qurilmani eslab qolish
       if (trustDevice && data.device_token) {
         localStorage.setItem(DEVICE_TOKEN_KEY, data.device_token);
       }
-
       handleSuccess(data);
     } catch (err: any) {
       const msg = err.response?.data?.message;
-      const safe =
+      setErrorMsg(
         typeof msg === "string" && msg.length < 200
           ? msg
-          : "Xatolik yuz berdi.";
-      setErrorMsg(safe);
+          : "Xatolik yuz berdi.",
+      );
       setOtp("");
     } finally {
       setLoading(false);
@@ -152,7 +144,7 @@ export default function LoginPage() {
         </div>
 
         <div className="card shadow-md">
-          {/* ── LOGIN EKRANI ── */}
+          {/* ── LOGIN ── */}
           {step === "login" && (
             <form onSubmit={handleLogin} className="space-y-4" noValidate>
               {errorMsg && (
@@ -160,40 +152,35 @@ export default function LoginPage() {
                   {errorMsg}
                 </div>
               )}
-              <div>
-                <label className="label">Username</label>
-                <input
-                  className="input"
-                  placeholder="username"
-                  value={form.username}
-                  onChange={(e) => {
-                    setErrorMsg("");
-                    setForm((p) => ({ ...p, username: e.target.value }));
-                  }}
-                  autoComplete="username"
-                  autoFocus
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <label className="label">Parol</label>
-                <div className="relative">
-                  <input
-                    className="input pr-11"
-                    type={showPass ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={(e) => {
-                      setErrorMsg("");
-                      setForm((p) => ({ ...p, password: e.target.value }));
-                    }}
-                    autoComplete="current-password"
-                    maxLength={128}
-                  />
+              <Input
+                label="Username"
+                placeholder="username"
+                value={form.username}
+                onChange={(e) => {
+                  setErrorMsg("");
+                  setForm((p) => ({ ...p, username: e.target.value }));
+                }}
+                autoComplete="username"
+                autoFocus
+                maxLength={100}
+              />
+              <Input
+                label="Parol"
+                type={showPass ? "text" : "password"}
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => {
+                  setErrorMsg("");
+                  setForm((p) => ({ ...p, password: e.target.value }));
+                }}
+                autoComplete="current-password"
+                maxLength={128}
+                rightElement={
                   <button
                     type="button"
                     onClick={() => setShowPass((p) => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600"
+                    tabIndex={-1}
                   >
                     {showPass ? (
                       <EyeOff className="w-4 h-4" />
@@ -201,24 +188,20 @@ export default function LoginPage() {
                       <Eye className="w-4 h-4" />
                     )}
                   </button>
-                </div>
-              </div>
-              <button
+                }
+              />
+              <Button
                 type="submit"
-                className="btn-primary w-full justify-center"
-                disabled={loading}
+                loading={loading}
+                icon={<LogIn className="w-4 h-4" />}
+                className="w-full justify-center"
               >
-                {loading ? (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <LogIn className="w-4 h-4" />
-                )}
                 {loading ? "Kirish..." : "Kirish"}
-              </button>
+              </Button>
             </form>
           )}
 
-          {/* ── OTP EKRANI ── */}
+          {/* ── OTP ── */}
           {step === "otp" && (
             <form onSubmit={handleVerifyOtp} className="space-y-4" noValidate>
               {errorMsg && (
@@ -226,15 +209,12 @@ export default function LoginPage() {
                   {errorMsg}
                 </div>
               )}
-
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
                 📱 Telegram ga 6 raqamli kod yuborildi. Kodni kiriting:
               </div>
-
               <div>
-                <label className="label">Tasdiqlash kodi</label>
-                <input
-                  className="input text-center text-2xl tracking-[0.5em] font-bold"
+                <Input
+                  label="Tasdiqlash kodi"
                   placeholder="000000"
                   value={otp}
                   onChange={(e) => {
@@ -244,6 +224,7 @@ export default function LoginPage() {
                   autoFocus
                   inputMode="numeric"
                   maxLength={6}
+                  className="text-center text-2xl tracking-[0.5em] font-bold"
                 />
                 {otpTimer > 0 && (
                   <p className="text-xs text-gray-400 mt-1 text-center">
@@ -253,7 +234,7 @@ export default function LoginPage() {
                 )}
               </div>
 
-              {/* Qurilmani eslab qolish */}
+              {/* Qurilmani eslab qolish toggle */}
               <label className="flex items-center gap-3 cursor-pointer bg-gray-50 rounded-xl p-3">
                 <div
                   onClick={() => setTrustDevice((p) => !p)}
@@ -277,18 +258,15 @@ export default function LoginPage() {
                 </div>
               </label>
 
-              <button
+              <Button
                 type="submit"
-                className="btn-primary w-full justify-center"
+                loading={loading}
+                icon={<ShieldCheck className="w-4 h-4" />}
                 disabled={loading || otp.length !== 6}
+                className="w-full justify-center"
               >
-                {loading ? (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <ShieldCheck className="w-4 h-4" />
-                )}
                 {loading ? "Tekshirilmoqda..." : "Tasdiqlash"}
-              </button>
+              </Button>
 
               <button
                 type="button"

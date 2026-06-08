@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { menuApi, tableApi } from "@/lib/services";
+import { menuApi, tableApi } from "@/lib/api";
 import { createOrderOffline } from "@/lib/offline-actions";
 import { useAuthStore } from "@/store/auth.store";
 import { PRODUCT_TYPE_LABELS, formatPrice } from "@/lib/utils";

@@ -14,8 +14,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import api from "@/lib/api";
-import { customRoleApi } from "@/lib/services";
+
+import { customRoleApi, settingsApi, earningsApi } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 
 const BASE_COMMISSION_ROLES = [
@@ -91,7 +91,7 @@ export default function SettingsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["manager-settings"],
-    queryFn: () => api.get("/manager/settings"),
+    queryFn: () => settingsApi.get(),
   });
 
   const settings = data?.data?.data;
@@ -123,7 +123,7 @@ export default function SettingsPage() {
   }, [settings]);
 
   const updateMutation = useMutation({
-    mutationFn: (body: any) => api.put("/manager/settings", body),
+    mutationFn: (body: any) => settingsApi.update(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["manager-settings"] });
       toast.success("Sozlamalar saqlandi!");
@@ -167,8 +167,7 @@ export default function SettingsPage() {
 
   const { data: earningsData } = useQuery({
     queryKey: ["waiter-earnings", earningsDate],
-    queryFn: () =>
-      api.get("/manager/waiter-earnings", { params: { date: earningsDate } }),
+    queryFn: () => earningsApi.getWaiterEarnings(earningsDate),
   });
   const earnings: any[] = earningsData?.data?.data || [];
 

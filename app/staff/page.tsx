@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { staffApi, customRoleApi, customProductTypeApi } from "@/lib/services";
+import { staffApi, customRoleApi, customProductTypeApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { ROLE_LABELS, PRODUCT_TYPE_LABELS } from "@/lib/utils";
 import type { Staff, Role, ProductType } from "@/types";

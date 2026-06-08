@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { dashboardApi, archiveApi } from "@/lib/services";
+import { dashboardApi, archiveApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { formatPrice } from "@/lib/utils";
 import {
