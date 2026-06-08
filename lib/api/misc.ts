@@ -145,3 +145,19 @@ export const reportsApi = {
   getLast30Extended: () =>
     api.get(`/archive/reports/last-30-extended`).then((r) => r.data.data),
 };
+
+// ─── STAFF MEALS ─────────────────────────────────────────────────
+export const staffMealApi = {
+  getAll: (params?: {
+    from?: string;
+    to?: string;
+    menu_item_id?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get("/staff-meals", { params }),
+  create: (data: { menu_item_id: string; quantity: number; note?: string }) =>
+    api.post("/staff-meals", data),
+  delete: (id: string) => api.delete(`/staff-meals/${id}`),
+  getReport: (params?: { from?: string; to?: string }) =>
+    api.get("/staff-meals/report", { params }).then((r) => r.data.data),
+};

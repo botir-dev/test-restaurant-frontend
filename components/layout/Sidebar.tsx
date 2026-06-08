@@ -28,6 +28,7 @@ import {
   FileText,
   Warehouse,
   BookOpen,
+  Soup,
 } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
@@ -97,6 +98,12 @@ const navItems = [
     ],
   },
   { href: "/staff", label: "Xodimlar", icon: Users, roles: ["manager"] },
+  {
+    href: "/staff-meals",
+    label: "Staff Meal",
+    icon: Soup,
+    roles: ["manager", "cashier"],
+  },
   { href: "/qr", label: "QR Kodlar", icon: QrCode, roles: ["manager"] },
   { href: "/archive", label: "Arxiv", icon: Archive, roles: ["manager"] },
   { href: "/reports", label: "Hisobotlar", icon: FileText, roles: ["manager"] },

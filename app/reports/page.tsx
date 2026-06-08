@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { reportsApi } from "@/lib/api";
+import { reportsApi, staffMealApi } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import { jsPDF } from "jspdf";
 import {
@@ -22,6 +22,7 @@ import {
   Bike,
   BarChart2,
   X,
+  Soup,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -110,6 +111,13 @@ const REPORT_TYPES = [
     icon: TrendingUp,
     color: "text-emerald-600",
     bg: "bg-emerald-50",
+  },
+  {
+    id: "staff-meal",
+    label: "Staff Meal hisoboti",
+    icon: Soup,
+    color: "text-orange-600",
+    bg: "bg-orange-50",
   },
 ];
 
@@ -229,6 +237,13 @@ export default function ReportsPage() {
       }
       if (activeType === "last-30-extended") {
         return reportsApi.getLast30Extended();
+      }
+      if (activeType === "staff-meal") {
+        const smParams = `?from=${from}T00:00:00&to=${to}T23:59:59`;
+        return staffMealApi.getReport({
+          from: `${from}T00:00:00`,
+          to: `${to}T23:59:59`,
+        });
       }
       return reportsApi.get(activeType, params);
     },
@@ -660,6 +675,7 @@ export default function ReportsPage() {
             {activeType === "last-30-extended" && (
               <Last30ExtendedReport data={data} />
             )}
+            {activeType === "staff-meal" && <StaffMealReport data={data} />}
           </div>
         )}
       </div>
@@ -1151,9 +1167,11 @@ function Expenses30Report({ data, params }: any) {
   const salary = data.salary || {};
   const util = data.utilities || {};
   const orders = data.orders || {};
+  const staffMeals = data.staff_meals || {};
   const invRows: any[] = inv.rows || [];
   const commStaff: any[] = salary.commission_staff || [];
   const monthStaff: any[] = salary.monthly_staff || [];
+  const staffMealRows: any[] = staffMeals.rows || [];
 
   return (
     <div className="space-y-6">
@@ -1357,6 +1375,43 @@ function Expenses30Report({ data, params }: any) {
       </Section>
 
       {/* 5. Umumiy harajat */}
+      {staffMealRows.length > 0 && (
+        <Section
+          title="🍽️ Staff Meal (xodimlar iste'mol qilgan taomlar)"
+          color="bg-orange-50 border-orange-200"
+        >
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-orange-50">
+                <Th>Taom nomi</Th>
+                <Th>Portsiya</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {staffMealRows.map((r: any, i: number) => (
+                <tr key={i} className={i % 2 === 0 ? "" : "bg-gray-50"}>
+                  <Td className="font-medium">{r.menu_item_name}</Td>
+                  <Td className="font-bold text-orange-700">
+                    {r.total_portions} ta
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-orange-100">
+                <td className="px-3 py-2 text-sm font-bold">
+                  Xom ashyo tannarxi:
+                </td>
+                <td className="px-3 py-2 text-sm font-bold text-orange-700">
+                  {formatPrice(staffMeals.total_cost)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </Section>
+      )}
+
+      {/* 6. Umumiy harajat */}
       <div className="bg-gray-900 rounded-xl p-5 text-white">
         <p className="text-sm text-gray-400 mb-3 font-medium uppercase tracking-wide">
           Umumiy harajat (oxirgi 30 kun)
@@ -1370,6 +1425,14 @@ function Expenses30Report({ data, params }: any) {
             <span className="text-gray-300">Maoshlar:</span>
             <span className="font-semibold">{formatPrice(salary.total)}</span>
           </div>
+          {staffMeals.total_cost > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-300">Staff Meal (xom ashyo):</span>
+              <span className="font-semibold text-orange-400">
+                {formatPrice(staffMeals.total_cost)}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-300">Kommunal xarajatlar:</span>
             <span className="font-semibold">{formatPrice(util.total)}</span>
@@ -1779,6 +1842,130 @@ function Last30ExtendedReport({ data }: any) {
           </tbody>
         </table>
       </Section>
+    </div>
+  );
+}
+
+// ─── STAFF MEAL HISOBOTI ─────────────────────────────────────
+function StaffMealReport({ data }: any) {
+  if (!data) return null;
+  const summary = data.summary || {};
+  const byDish: any[] = data.by_dish || [];
+  const daily: any[] = data.daily || [];
+  const invUsage: any[] = data.inventory_usage || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Xulosa */}
+      <div className="grid grid-cols-3 gap-4 p-4 bg-orange-50 border border-orange-200 rounded-2xl">
+        <SummaryCard
+          label="Jami portsiya"
+          value={`${Number(summary.total_portions || 0).toLocaleString("uz-UZ")} ta`}
+          color="text-orange-600"
+        />
+        <SummaryCard
+          label="Yozuvlar soni"
+          value={`${Number(summary.total_records || 0).toLocaleString("uz-UZ")} ta`}
+          color="text-gray-700"
+        />
+        <SummaryCard
+          label="Necha xil taom"
+          value={`${Number(summary.unique_dishes || 0).toLocaleString("uz-UZ")} ta`}
+          color="text-blue-600"
+        />
+      </div>
+
+      {/* Taom bo'yicha */}
+      <Section
+        title="Taom bo'yicha yig'ma"
+        color="bg-orange-50 border-orange-200"
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-orange-50">
+              <Th>Taom nomi</Th>
+              <Th>Portsiya</Th>
+              <Th>Yozuvlar</Th>
+              <Th>Oxirgi sana</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {byDish.map((r: any, i: number) => (
+              <tr key={i} className={i % 2 === 0 ? "" : "bg-gray-50"}>
+                <Td className="font-medium">{r.menu_item_name}</Td>
+                <Td className="font-bold text-orange-700">
+                  {r.total_quantity} ta
+                </Td>
+                <Td className="text-gray-500">{r.record_count} ta</Td>
+                <Td className="text-gray-400 text-xs">
+                  {r.last_recorded_at
+                    ? new Date(r.last_recorded_at).toLocaleDateString("uz-UZ")
+                    : "—"}
+                </Td>
+              </tr>
+            ))}
+            {!byDish.length && <EmptyRow cols={4} />}
+          </tbody>
+        </table>
+      </Section>
+
+      {/* Kunlik */}
+      <Section title="Kunlik taqsimot" color="bg-blue-50 border-blue-200">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-blue-50">
+              <Th>Sana</Th>
+              <Th>Portsiya</Th>
+              <Th>Yozuvlar</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {daily.map((r: any, i: number) => (
+              <tr key={i} className={i % 2 === 0 ? "" : "bg-gray-50"}>
+                <Td className="font-medium">{r.date}</Td>
+                <Td className="font-bold text-blue-700">
+                  {r.total_quantity} ta
+                </Td>
+                <Td className="text-gray-500">{r.record_count} ta</Td>
+              </tr>
+            ))}
+            {!daily.length && <EmptyRow cols={3} />}
+          </tbody>
+        </table>
+      </Section>
+
+      {/* Ombordan ketgan materiallar */}
+      {invUsage.length > 0 && (
+        <Section
+          title="Ombordan ketgan xom ashyo (staff meal sababli)"
+          color="bg-red-50 border-red-200"
+        >
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <Th>Mahsulot</Th>
+                <Th>Miqdor</Th>
+                <Th>Birlik</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {invUsage.map((r: any, i: number) => (
+                <tr key={i} className={i % 2 === 0 ? "" : "bg-gray-50"}>
+                  <Td className="font-medium">{r.inventory_item_name}</Td>
+                  <Td className="font-bold text-red-700">
+                    {Number(r.total_used).toLocaleString("uz-UZ", {
+                      maximumFractionDigits: 3,
+                    })}
+                  </Td>
+                  <Td className="text-gray-500">
+                    {r.unit === "custom" ? r.custom_unit : r.unit}
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+      )}
     </div>
   );
 }
