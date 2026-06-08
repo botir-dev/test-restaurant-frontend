@@ -57,10 +57,9 @@ function AddMealModal({
   const { data: menuData, isLoading: menuLoading } = useQuery({
     queryKey: ["menu-for-staff-meal", search],
     queryFn: () => menuApi.getAll({ search: search || undefined, limit: 50 }),
-    select: (r) => r.data.data,
   });
 
-  const menuItems: any[] = menuData?.data || [];
+  const menuItems: any[] = menuData?.data?.data || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -238,11 +237,10 @@ export default function StaffMealsPage() {
         to: to ? `${to}T23:59:59` : undefined,
         limit: 100,
       }),
-    select: (r) => r.data.data,
   });
 
-  const meals: any[] = data?.data || [];
-  const total: number = data?.total || 0;
+  const meals: any[] = data?.data?.data || [];
+  const total: number = data?.data?.pagination?.total || 0;
 
   const createMutation = useMutation({
     mutationFn: staffMealApi.create,
