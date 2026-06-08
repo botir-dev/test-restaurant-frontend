@@ -1,5 +1,5 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { productApi, orderApi } from "@/lib/api";
@@ -78,46 +78,51 @@ function MenuContent() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [activeType, setActiveType] = useState("all");
-
-  // step:
-  // "checking"   — stol holati tekshirilmoqda (boshlang'ich)
-  // "ask_add"    — stol band, "qo'shmoqchimisiz?" modal
-  // "menu"       — menyu ko'rinmoqda (yangi yoki qo'shish rejimi)
-  // "waiter"     — yangi buyurtma uchun ofitsiant tanlash
-  // "success"    — muvaffaqiyat
   const [step, setStep] = useState<
     "checking" | "ask_add" | "menu" | "waiter" | "success"
   >("checking");
-  const [addMode, setAddMode] = useState(false); // true = mavjud buyurtmaga qo'shish
+  const [addMode, setAddMode] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [activeWaiterId, setActiveWaiterId] = useState<string | null>(null);
   const [activeWaiterName, setActiveWaiterName] = useState<string | null>(null);
+  const [stepInitialized, setStepInitialized] = useState(false);
 
   // Stol holatini tekshirish — sahifa ochilganda
-  const { isLoading: statusLoading } = useQuery({
+  const {
+    data: tableStatusData,
+    isLoading: statusLoading,
+    isError: statusError,
+  } = useQuery({
     queryKey: ["table-status", branchId, tableId],
     queryFn: () => orderApi.getTableStatus(branchId, tableId),
     enabled: !!branchId && !!tableId,
     retry: false,
     refetchOnWindowFocus: false,
-    onSuccess: (res: any) => {
-      const d = res?.data?.data;
-      if (d?.has_active_order && d?.order_id) {
-        // Aktiv buyurtma bor — modal ko'rsat
-        setActiveOrderId(d.order_id);
-        setActiveWaiterId(d.waiter_id);
-        setActiveWaiterName(d.waiter_name);
-        setStep("ask_add");
-      } else {
-        // Bo'sh stol — to'g'ridan menyu
-        setStep("menu");
-      }
-    },
-    onError: () => {
-      // Tekshirib bo'lmasa ham menyuni ko'rsat
-      setStep("menu");
-    },
   });
+
+  // React Query v5 da onSuccess/onError yo'q — useEffect ishlatamiz
+
+  useEffect(() => {
+    if (stepInitialized) return;
+    if (statusLoading) return;
+
+    if (statusError || !tableStatusData) {
+      setStep("menu");
+      setStepInitialized(true);
+      return;
+    }
+
+    const d = tableStatusData?.data?.data;
+    if (d?.has_active_order && d?.order_id) {
+      setActiveOrderId(d.order_id);
+      setActiveWaiterId(d.waiter_id);
+      setActiveWaiterName(d.waiter_name);
+      setStep("ask_add");
+    } else {
+      setStep("menu");
+    }
+    setStepInitialized(true);
+  }, [statusLoading, statusError, tableStatusData, stepInitialized]);
 
   // Menyu ma'lumotlari
   const { data: menuData, isLoading: menuLoading } = useQuery({
