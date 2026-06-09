@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { inventoryApi } from "@/lib/api";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 import type { InventoryItem, InventoryUnit } from "@/types";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
@@ -442,241 +443,244 @@ export default function InventoryPage() {
   });
 
   return (
-    <div className="space-y-4 animate-fadeIn">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Omborxona</h1>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Ingredientlar va xom ashyo zaxirasi
-          </p>
+    <LockedFeature featureKey="inventory" featureName="Ombor boshqaruvi">
+      <div className="space-y-4 animate-fadeIn">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Omborxona</h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Ingredientlar va xom ashyo zaxirasi
+            </p>
+          </div>
+          {canEdit && (
+            <button
+              onClick={() => {
+                setEditItem(undefined);
+                setShowModal(true);
+              }}
+              className="btn-primary text-sm py-2 px-3"
+            >
+              <Plus className="w-4 h-4" /> Ingredient qo'shish
+            </button>
+          )}
         </div>
-        {canEdit && (
-          <button
-            onClick={() => {
-              setEditItem(undefined);
-              setShowModal(true);
+
+        {/* Qidiruv */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            className="input pl-9"
+            placeholder="Qidirish..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
             }}
-            className="btn-primary text-sm py-2 px-3"
-          >
-            <Plus className="w-4 h-4" /> Ingredient qo'shish
-          </button>
-        )}
-      </div>
-
-      {/* Qidiruv */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          className="input pl-9"
-          placeholder="Qidirish..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2"
-          >
-            <X className="w-4 h-4 text-gray-400" />
-          </button>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          )}
         </div>
-      ) : items.length === 0 ? (
-        <div className="text-center py-16">
-          <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Ingredient topilmadi</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {items.map((item) => {
-            const qty = parseFloat(item.quantity as any);
-            const minQty = parseFloat(item.min_quantity as any);
-            const isLow = minQty > 0 && qty <= minQty;
-            const unit = unitDisplay(item);
-            return (
-              <div
-                key={item.id}
-                className={clsx(
-                  "bg-white rounded-2xl border-2 overflow-hidden transition-all",
-                  isLow ? "border-orange-200" : "border-gray-100",
-                )}
-              >
-                {/* Rasm */}
-                <div className="h-24 bg-gray-50 relative overflow-hidden">
-                  {item.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-7 h-7 text-gray-300" />
-                    </div>
-                  )}
-                  {isLow && (
-                    <div className="absolute top-1.5 right-1.5 bg-orange-500 text-white rounded-lg px-1.5 py-0.5 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      <span className="text-xs font-bold">Kam</span>
-                    </div>
-                  )}
-                </div>
 
-                <div className="p-3">
-                  <p className="font-semibold text-gray-800 text-sm truncate">
-                    {item.name}
-                  </p>
-
-                  {/* Miqdor */}
-                  <div
-                    className={clsx(
-                      "mt-1.5 rounded-lg px-2 py-1 text-center",
-                      isLow ? "bg-orange-50" : "bg-green-50",
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-16">
+            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Ingredient topilmadi</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {items.map((item) => {
+              const qty = parseFloat(item.quantity as any);
+              const minQty = parseFloat(item.min_quantity as any);
+              const isLow = minQty > 0 && qty <= minQty;
+              const unit = unitDisplay(item);
+              return (
+                <div
+                  key={item.id}
+                  className={clsx(
+                    "bg-white rounded-2xl border-2 overflow-hidden transition-all",
+                    isLow ? "border-orange-200" : "border-gray-100",
+                  )}
+                >
+                  {/* Rasm */}
+                  <div className="h-24 bg-gray-50 relative overflow-hidden">
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="w-7 h-7 text-gray-300" />
+                      </div>
                     )}
-                  >
-                    <span
-                      className={clsx(
-                        "font-bold text-sm",
-                        isLow ? "text-orange-600" : "text-green-700",
-                      )}
-                    >
-                      {qty % 1 === 0 ? qty : qty.toFixed(3)}
-                    </span>
-                    <span
-                      className={clsx(
-                        "text-xs ml-1",
-                        isLow ? "text-orange-500" : "text-green-600",
-                      )}
-                    >
-                      {unit}
-                    </span>
+                    {isLow && (
+                      <div className="absolute top-1.5 right-1.5 bg-orange-500 text-white rounded-lg px-1.5 py-0.5 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        <span className="text-xs font-bold">Kam</span>
+                      </div>
+                    )}
                   </div>
 
-                  {minQty > 0 && (
-                    <p className="text-xs text-gray-400 mt-1 text-center">
-                      min: {minQty} {unit}
+                  <div className="p-3">
+                    <p className="font-semibold text-gray-800 text-sm truncate">
+                      {item.name}
                     </p>
-                  )}
 
-                  {/* Tannarx va umumiy qiymat - faqat manager ko'radi */}
-                  {item.cost_price != null && item.cost_price > 0 && (
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center justify-between bg-blue-50 rounded-lg px-2 py-1">
-                        <span className="text-xs text-blue-500 flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />1 {unit}
-                        </span>
-                        <span className="text-xs font-semibold text-blue-700">
-                          {Number(item.cost_price).toLocaleString("uz-UZ")} so'm
-                        </span>
-                      </div>
-                      {item.total_cost != null && item.total_cost > 0 && (
-                        <div className="flex items-center justify-between bg-purple-50 rounded-lg px-2 py-1">
-                          <span className="text-xs text-purple-500 flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3" />
-                            Jami
+                    {/* Miqdor */}
+                    <div
+                      className={clsx(
+                        "mt-1.5 rounded-lg px-2 py-1 text-center",
+                        isLow ? "bg-orange-50" : "bg-green-50",
+                      )}
+                    >
+                      <span
+                        className={clsx(
+                          "font-bold text-sm",
+                          isLow ? "text-orange-600" : "text-green-700",
+                        )}
+                      >
+                        {qty % 1 === 0 ? qty : qty.toFixed(3)}
+                      </span>
+                      <span
+                        className={clsx(
+                          "text-xs ml-1",
+                          isLow ? "text-orange-500" : "text-green-600",
+                        )}
+                      >
+                        {unit}
+                      </span>
+                    </div>
+
+                    {minQty > 0 && (
+                      <p className="text-xs text-gray-400 mt-1 text-center">
+                        min: {minQty} {unit}
+                      </p>
+                    )}
+
+                    {/* Tannarx va umumiy qiymat - faqat manager ko'radi */}
+                    {item.cost_price != null && item.cost_price > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between bg-blue-50 rounded-lg px-2 py-1">
+                          <span className="text-xs text-blue-500 flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />1 {unit}
                           </span>
-                          <span className="text-xs font-semibold text-purple-700">
-                            {Number(item.total_cost).toLocaleString("uz-UZ")}{" "}
+                          <span className="text-xs font-semibold text-blue-700">
+                            {Number(item.cost_price).toLocaleString("uz-UZ")}{" "}
                             so'm
                           </span>
                         </div>
+                        {item.total_cost != null && item.total_cost > 0 && (
+                          <div className="flex items-center justify-between bg-purple-50 rounded-lg px-2 py-1">
+                            <span className="text-xs text-purple-500 flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" />
+                              Jami
+                            </span>
+                            <span className="text-xs font-semibold text-purple-700">
+                              {Number(item.total_cost).toLocaleString("uz-UZ")}{" "}
+                              so'm
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tugmalar */}
+                    <div className="flex items-center gap-1.5 mt-2">
+                      {canEdit && (
+                        <button
+                          onClick={() => setAddStockItem(item)}
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all flex items-center justify-center gap-1"
+                          title="Ombor to'ldirish"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" /> Qo'sh
+                        </button>
+                      )}
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditItem(item);
+                              setShowModal(true);
+                            }}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-gray-600" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm("O'chirishni tasdiqlaysizmi?"))
+                                deleteMutation.mutate(item.id);
+                            }}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          </button>
+                        </>
                       )}
                     </div>
-                  )}
-
-                  {/* Tugmalar */}
-                  <div className="flex items-center gap-1.5 mt-2">
-                    {canEdit && (
-                      <button
-                        onClick={() => setAddStockItem(item)}
-                        className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all flex items-center justify-center gap-1"
-                        title="Ombor to'ldirish"
-                      >
-                        <PlusCircle className="w-3.5 h-3.5" /> Qo'sh
-                      </button>
-                    )}
-                    {canEdit && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditItem(item);
-                            setShowModal(true);
-                          }}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100"
-                        >
-                          <Pencil className="w-3.5 h-3.5 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm("O'chirishni tasdiqlaysizmi?"))
-                              deleteMutation.mutate(item.id);
-                          }}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                        </button>
-                      </>
-                    )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
 
-      {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="btn-secondary py-1.5 px-3 text-sm"
-          >
-            ← Oldingi
-          </button>
-          <span className="text-sm text-gray-600">
-            {page} / {pagination.totalPages}
-          </span>
-          <button
-            onClick={() =>
-              setPage((p) => Math.min(pagination.totalPages, p + 1))
-            }
-            disabled={page === pagination.totalPages}
-            className="btn-secondary py-1.5 px-3 text-sm"
-          >
-            Keyingi →
-          </button>
-        </div>
-      )}
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-secondary py-1.5 px-3 text-sm"
+            >
+              ← Oldingi
+            </button>
+            <span className="text-sm text-gray-600">
+              {page} / {pagination.totalPages}
+            </span>
+            <button
+              onClick={() =>
+                setPage((p) => Math.min(pagination.totalPages, p + 1))
+              }
+              disabled={page === pagination.totalPages}
+              className="btn-secondary py-1.5 px-3 text-sm"
+            >
+              Keyingi →
+            </button>
+          </div>
+        )}
 
-      {showModal && (
-        <InventoryModal
-          item={editItem}
-          onClose={() => {
-            setShowModal(false);
-            setEditItem(undefined);
-          }}
-        />
-      )}
-      {addStockItem && (
-        <AddStockModal
-          item={addStockItem}
-          onClose={() => setAddStockItem(undefined)}
-        />
-      )}
-    </div>
+        {showModal && (
+          <InventoryModal
+            item={editItem}
+            onClose={() => {
+              setShowModal(false);
+              setEditItem(undefined);
+            }}
+          />
+        )}
+        {addStockItem && (
+          <AddStockModal
+            item={addStockItem}
+            onClose={() => setAddStockItem(undefined)}
+          />
+        )}
+      </div>
+    </LockedFeature>
   );
 }
