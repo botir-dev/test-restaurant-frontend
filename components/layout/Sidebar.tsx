@@ -104,6 +104,7 @@ const navItems = [
     icon: Soup,
     roles: ["manager", "cashier"],
   },
+  { href: "/owner", label: "Owner Panel", icon: Building2, roles: ["owner"] },
   { href: "/qr", label: "QR Kodlar", icon: QrCode, roles: ["manager"] },
   { href: "/archive", label: "Arxiv", icon: Archive, roles: ["manager"] },
   { href: "/reports", label: "Hisobotlar", icon: FileText, roles: ["manager"] },

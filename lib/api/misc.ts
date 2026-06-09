@@ -161,3 +161,38 @@ export const staffMealApi = {
   getReport: (params?: { from?: string; to?: string }) =>
     api.get("/staff-meals/report", { params }).then((r) => r.data.data),
 };
+
+// ─── OWNER ───────────────────────────────────────────────────
+export const ownerApi = {
+  getDashboard: () => api.get("/owner/dashboard"),
+  compareBranches: (params?: { from?: string; to?: string }) =>
+    api.get("/owner/branches/compare", { params }),
+  compareInventory: () => api.get("/owner/inventory/compare"),
+  getGlobalReport: (params?: { from?: string; to?: string }) =>
+    api.get("/owner/reports/global", { params }),
+
+  getBranchRevenue: (
+    branchId: string,
+    params?: { from?: string; to?: string; period?: string },
+  ) => api.get(`/owner/branches/${branchId}/revenue`, { params }),
+  getBranchInventory: (branchId: string) =>
+    api.get(`/owner/branches/${branchId}/inventory`),
+  getBranchExpenses: (
+    branchId: string,
+    params?: { from?: string; to?: string },
+  ) => api.get(`/owner/branches/${branchId}/reports/expenses`, { params }),
+  getBranchStaff: (branchId: string) =>
+    api.get(`/owner/branches/${branchId}/staff`),
+  getBranchStaffMeals: (
+    branchId: string,
+    params?: { from?: string; to?: string },
+  ) => api.get(`/owner/branches/${branchId}/staff-meals`, { params }),
+  getBranchMenu: (branchId: string) =>
+    api.get(`/owner/branches/${branchId}/menu`),
+  getBranchArchive: (
+    branchId: string,
+    params?: { from?: string; to?: string; page?: number },
+  ) => api.get(`/owner/branches/${branchId}/archive`, { params }),
+  updateBranch: (branchId: string, data: { name?: string; address?: string }) =>
+    api.put(`/owner/branches/${branchId}`, data),
+};

@@ -39,4 +39,20 @@ export const adminApi = {
   updateManager: (id: string, data: Partial<Staff & { password?: string }>) =>
     api.put(`/admin/managers/${id}`, data),
   deleteManager: (id: string) => api.delete(`/admin/managers/${id}`),
+
+  // Owners
+  getOwners: (restaurant_id?: string) =>
+    api.get("/admin/owners", { params: { restaurant_id } }),
+  createOwner: (data: {
+    restaurant_id: string;
+    full_name: string;
+    username: string;
+    phone?: string;
+    password: string;
+  }) => api.post("/admin/owners", data),
+  updateOwner: (
+    id: string,
+    data: { full_name?: string; phone?: string; is_active?: boolean },
+  ) => api.put(`/admin/owners/${id}`, data),
+  deleteOwner: (id: string) => api.delete(`/admin/owners/${id}`),
 };

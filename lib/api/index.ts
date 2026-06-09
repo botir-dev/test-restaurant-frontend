@@ -29,4 +29,5 @@ export {
   cashierApi,
   reportsApi,
   staffMealApi,
+  ownerApi,
 } from "./misc";
