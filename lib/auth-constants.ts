@@ -7,6 +7,7 @@
 
 export const ROLE_HOME: Record<string, string> = {
   super_admin: "/admin",
+  owner: "/owner",
   manager: "/dashboard",
   waiter: "/tables",
   cashier: "/cashier",
@@ -17,6 +18,7 @@ export const getHome = (role: string): string => ROLE_HOME[role] ?? "/kitchen";
 
 export const ROLE_ROUTES: Record<string, string[]> = {
   super_admin: ["/admin", "/restaurants", "/branches"],
+  owner: ["/owner"],
   manager: [
     "/dashboard",
     "/tables",
