@@ -6,11 +6,21 @@ import Sidebar from "@/components/layout/Sidebar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+
   useEffect(() => {
-    if (!isAuthenticated) router.replace("/login");
-  }, [isAuthenticated, router]);
-  if (!isAuthenticated) return null;
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
+    }
+    if (user?.role !== "owner") {
+      router.replace("/dashboard");
+      return;
+    }
+  }, [isAuthenticated, user, router]);
+
+  if (!isAuthenticated || user?.role !== "owner") return null;
+
   return (
     <div className="flex min-h-screen bg-[#fafaf8]">
       <Sidebar />

@@ -143,6 +143,7 @@ const navItems = [
 const STANDARD_ROLES = [
   "manager",
   "super_admin",
+  "owner",
   "waiter",
   "cashier",
   "storekeeper",
@@ -194,6 +195,8 @@ export default function Sidebar() {
 
   const visible = navItems.filter((n) => {
     if (!user) return false;
+    // Owner faqat /owner sahifasini ko'radi
+    if (user.role === "owner") return n.href === "/owner";
     if (n.roles.includes(user.role)) return true;
     if (
       isCustomRole &&
