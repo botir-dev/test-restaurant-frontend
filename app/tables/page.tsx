@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 // ─── TABLE CARD ──────────────────────────────────────────
 function TableCard({ table }: { table: Table }) {
@@ -748,110 +749,117 @@ export default function TablesPage() {
   const isManager = user?.role === "manager";
 
   return (
-    <div className="space-y-5 animate-fadeIn">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Stollar</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            <span className="text-red-600 font-semibold">{occupied} band</span>
-            {" · "}
-            <span className="text-green-600 font-semibold">{free} bo'sh</span>
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {user?.role === "waiter" && (
-            <Link
-              href="/tables/scan"
-              className="btn-secondary text-sm py-2 px-3"
-            >
-              <QrCode className="w-4 h-4" /> Skanerlash
-            </Link>
-          )}
-          {isManager && (
-            <>
-              <button
-                onClick={() => setShowReservations(true)}
+    <LockedFeature
+      featureKey="tables_management"
+      featureName="Stollar boshqaruvi"
+    >
+      <div className="space-y-5 animate-fadeIn">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Stollar</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              <span className="text-red-600 font-semibold">
+                {occupied} band
+              </span>
+              {" · "}
+              <span className="text-green-600 font-semibold">{free} bo'sh</span>
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {user?.role === "waiter" && (
+              <Link
+                href="/tables/scan"
                 className="btn-secondary text-sm py-2 px-3"
               >
-                <BookOpen className="w-4 h-4" /> Rezervatsiyalar
-              </button>
-              <button
-                onClick={() => setShowNewReservation(true)}
-                className="btn-secondary text-sm py-2 px-3"
-              >
-                <CalendarDays className="w-4 h-4" /> Rezervatsiya
-              </button>
-              <button
-                onClick={() => setShowAdd(true)}
-                className="btn-primary text-sm py-2 px-3"
-              >
-                <Plus className="w-4 h-4" /> Stol
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        {(["all", "occupied", "free"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={clsx(
-              "flex-1 py-2 rounded-xl text-xs font-semibold transition-all",
-              tab === t
-                ? "bg-green-600 text-white"
-                : "bg-white border border-gray-200 text-gray-600",
+                <QrCode className="w-4 h-4" /> Skanerlash
+              </Link>
             )}
-          >
-            {t === "all"
-              ? `Barchasi (${tables.length})`
-              : t === "occupied"
-                ? `Band (${occupied})`
-                : `Bo'sh (${free})`}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex gap-3 text-xs flex-wrap">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-          Bo'sh
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-          Band
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-          Rezervatsiya bor
-        </span>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+            {isManager && (
+              <>
+                <button
+                  onClick={() => setShowReservations(true)}
+                  className="btn-secondary text-sm py-2 px-3"
+                >
+                  <BookOpen className="w-4 h-4" /> Rezervatsiyalar
+                </button>
+                <button
+                  onClick={() => setShowNewReservation(true)}
+                  className="btn-secondary text-sm py-2 px-3"
+                >
+                  <CalendarDays className="w-4 h-4" /> Rezervatsiya
+                </button>
+                <button
+                  onClick={() => setShowAdd(true)}
+                  className="btn-primary text-sm py-2 px-3"
+                >
+                  <Plus className="w-4 h-4" /> Stol
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <Table2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Hali stol qo'shilmagan</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((table) => (
-            <TableCard key={table.id} table={table} />
+
+        <div className="flex gap-2">
+          {(["all", "occupied", "free"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={clsx(
+                "flex-1 py-2 rounded-xl text-xs font-semibold transition-all",
+                tab === t
+                  ? "bg-green-600 text-white"
+                  : "bg-white border border-gray-200 text-gray-600",
+              )}
+            >
+              {t === "all"
+                ? `Barchasi (${tables.length})`
+                : t === "occupied"
+                  ? `Band (${occupied})`
+                  : `Bo'sh (${free})`}
+            </button>
           ))}
         </div>
-      )}
 
-      {showAdd && <AddTableModal onClose={() => setShowAdd(false)} />}
-      {showReservations && (
-        <ReservationsPanel onClose={() => setShowReservations(false)} />
-      )}
-      {showNewReservation && (
-        <ReservationModal onClose={() => setShowNewReservation(false)} />
-      )}
-    </div>
+        <div className="flex gap-3 text-xs flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            Bo'sh
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            Band
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+            Rezervatsiya bor
+          </span>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <Table2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Hali stol qo'shilmagan</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((table) => (
+              <TableCard key={table.id} table={table} />
+            ))}
+          </div>
+        )}
+
+        {showAdd && <AddTableModal onClose={() => setShowAdd(false)} />}
+        {showReservations && (
+          <ReservationsPanel onClose={() => setShowReservations(false)} />
+        )}
+        {showNewReservation && (
+          <ReservationModal onClose={() => setShowNewReservation(false)} />
+        )}
+      </div>
+    </LockedFeature>
   );
 }

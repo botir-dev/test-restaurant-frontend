@@ -21,6 +21,7 @@ import {
   Tags,
 } from "lucide-react";
 import clsx from "clsx";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 const BASE_TYPES = [
   "food",
@@ -712,6 +713,7 @@ export default function MenuManagePage() {
   });
 
   return (
+    <LockedFeature featureKey="menu_management" featureName="Menyu boshqaruvi">
     <div className="space-y-4 animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -1042,5 +1044,6 @@ export default function MenuManagePage() {
         <CustomTypeModal onClose={() => setShowCustomTypeModal(false)} />
       )}
     </div>
+    </LockedFeature>
   );
 }

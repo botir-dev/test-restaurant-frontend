@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import clsx from "clsx";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 const today = () => new Date().toISOString().split("T")[0];
 const monthAgo = () => {
@@ -276,6 +277,7 @@ export default function StaffMealsPage() {
   const totalPortions = meals.reduce((s: number, m: any) => s + m.quantity, 0);
 
   return (
+    <LockedFeature featureKey="basic_daily_revenue" featureName="Xodim ovqatlari">
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -427,5 +429,6 @@ export default function StaffMealsPage() {
         />
       )}
     </div>
+    </LockedFeature>
   );
 }

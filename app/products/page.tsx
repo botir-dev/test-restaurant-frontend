@@ -23,6 +23,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import clsx from "clsx";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 const BASE_TYPES: ProductType[] = [
   "food",
@@ -515,232 +516,234 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="space-y-4 animate-fadeIn">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Mahsulotlar</h1>
-          {isPreparerUser && userAllowedTypes.length > 0 && (
-            <p className="text-xs text-gray-500 mt-0.5">
-              Sizga biriktirilgan:{" "}
-              {userAllowedTypes.map((t) => allTypeLabels[t] || t).join(", ")}
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {canEdit && (
-            <button
-              onClick={() => setShowTypeManager(true)}
-              className="btn-secondary text-sm py-2 px-3"
-            >
-              <Layers className="w-4 h-4" /> Turlar
-            </button>
-          )}
-          {canEdit && (
-            <button
-              onClick={() => {
-                setEditProduct(undefined);
-                setShowModal(true);
-              }}
-              className="btn-primary text-sm py-2 px-3"
-            >
-              <Plus className="w-4 h-4" /> Qo'shish
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          className="input pl-9"
-          placeholder="Qidirish..."
-          value={search}
-          maxLength={100}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2"
-          >
-            <X className="w-4 h-4 text-gray-400" />
-          </button>
-        )}
-      </div>
-
-      {!isPreparerUser && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <button
-            onClick={() => {
-              setActiveType("all");
-              setPage(1);
-            }}
-            className={clsx(
-              "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all",
-              activeType === "all"
-                ? "bg-green-600 text-white"
-                : "bg-white border border-gray-200 text-gray-600",
+    <LockedFeature featureKey="basic_daily_revenue" featureName="Mahsulotlar">
+      <div className="space-y-4 animate-fadeIn">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Mahsulotlar</h1>
+            {isPreparerUser && userAllowedTypes.length > 0 && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                Sizga biriktirilgan:{" "}
+                {userAllowedTypes.map((t) => allTypeLabels[t] || t).join(", ")}
+              </p>
             )}
-          >
-            Hammasi
-          </button>
-          {allTypesForSelect.map(({ key, label }) => (
+          </div>
+          <div className="flex gap-2">
+            {canEdit && (
+              <button
+                onClick={() => setShowTypeManager(true)}
+                className="btn-secondary text-sm py-2 px-3"
+              >
+                <Layers className="w-4 h-4" /> Turlar
+              </button>
+            )}
+            {canEdit && (
+              <button
+                onClick={() => {
+                  setEditProduct(undefined);
+                  setShowModal(true);
+                }}
+                className="btn-primary text-sm py-2 px-3"
+              >
+                <Plus className="w-4 h-4" /> Qo'shish
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            className="input pl-9"
+            placeholder="Qidirish..."
+            value={search}
+            maxLength={100}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
             <button
-              key={key}
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          )}
+        </div>
+
+        {!isPreparerUser && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
               onClick={() => {
-                setActiveType(key);
+                setActiveType("all");
                 setPage(1);
               }}
               className={clsx(
                 "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all",
-                activeType === key
+                activeType === "all"
                   ? "bg-green-600 text-white"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-green-300",
+                  : "bg-white border border-gray-200 text-gray-600",
               )}
             >
-              {label}
+              Hammasi
             </button>
-          ))}
-        </div>
-      )}
+            {allTypesForSelect.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setActiveType(key);
+                  setPage(1);
+                }}
+                className={clsx(
+                  "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all",
+                  activeType === key
+                    ? "bg-green-600 text-white"
+                    : "bg-white border border-gray-200 text-gray-600 hover:border-green-300",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-6 h-6 animate-spin text-green-600" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Mahsulot topilmadi</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map((product) => (
-            <div
-              key={product.id}
-              className={clsx(
-                "bg-white rounded-2xl border-2 overflow-hidden transition-all",
-                product.is_available
-                  ? "border-gray-100"
-                  : "border-red-100 opacity-70",
-              )}
-            >
-              <div className="h-28 bg-gray-100 relative overflow-hidden">
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-8 h-8 text-gray-300" />
-                  </div>
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Mahsulot topilmadi</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {filtered.map((product) => (
+              <div
+                key={product.id}
+                className={clsx(
+                  "bg-white rounded-2xl border-2 overflow-hidden transition-all",
+                  product.is_available
+                    ? "border-gray-100"
+                    : "border-red-100 opacity-70",
                 )}
-                {!product.is_available && (
-                  <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
-                    <span className="badge bg-red-500 text-white text-xs">
-                      Mavjud emas
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="p-3">
-                <p className="font-semibold text-gray-800 text-sm truncate">
-                  {product.name}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {allTypeLabels[product.type] || product.type}
-                </p>
-                <p className="text-green-600 font-bold text-sm mt-1">
-                  {formatPrice(product.price)}
-                </p>
-                <div className="flex items-center gap-1.5 mt-2">
-                  {canToggle && (
-                    <button
-                      onClick={() =>
-                        toggleMutation.mutate({
-                          id: product.id,
-                          val: !product.is_available,
-                        })
-                      }
-                      className={clsx(
-                        "flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all",
-                        product.is_available
-                          ? "bg-green-50 text-green-700 hover:bg-green-100"
-                          : "bg-red-50 text-red-600 hover:bg-red-100",
-                      )}
-                    >
-                      {product.is_available ? "Mavjud" : "Yo'q"}
-                    </button>
+              >
+                <div className="h-28 bg-gray-100 relative overflow-hidden">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-300" />
+                    </div>
                   )}
-                  {canEdit && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setEditProduct(product);
-                          setShowModal(true);
-                        }}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100"
-                      >
-                        <Pencil className="w-3.5 h-3.5 text-gray-600" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                      </button>
-                    </>
+                  {!product.is_available && (
+                    <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                      <span className="badge bg-red-500 text-white text-xs">
+                        Mavjud emas
+                      </span>
+                    </div>
                   )}
                 </div>
+                <div className="p-3">
+                  <p className="font-semibold text-gray-800 text-sm truncate">
+                    {product.name}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {allTypeLabels[product.type] || product.type}
+                  </p>
+                  <p className="text-green-600 font-bold text-sm mt-1">
+                    {formatPrice(product.price)}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    {canToggle && (
+                      <button
+                        onClick={() =>
+                          toggleMutation.mutate({
+                            id: product.id,
+                            val: !product.is_available,
+                          })
+                        }
+                        className={clsx(
+                          "flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all",
+                          product.is_available
+                            ? "bg-green-50 text-green-700 hover:bg-green-100"
+                            : "bg-red-50 text-red-600 hover:bg-red-100",
+                        )}
+                      >
+                        {product.is_available ? "Mavjud" : "Yo'q"}
+                      </button>
+                    )}
+                    {canEdit && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditProduct(product);
+                            setShowModal(true);
+                          }}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="btn-secondary py-1.5 px-3 text-sm"
-          >
-            ← Oldingi
-          </button>
-          <span className="text-sm text-gray-600">
-            {page} / {pagination.totalPages}
-          </span>
-          <button
-            onClick={() =>
-              setPage((p) => Math.min(pagination.totalPages, p + 1))
-            }
-            disabled={page === pagination.totalPages}
-            className="btn-secondary py-1.5 px-3 text-sm"
-          >
-            Keyingi →
-          </button>
-        </div>
-      )}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-secondary py-1.5 px-3 text-sm"
+            >
+              ← Oldingi
+            </button>
+            <span className="text-sm text-gray-600">
+              {page} / {pagination.totalPages}
+            </span>
+            <button
+              onClick={() =>
+                setPage((p) => Math.min(pagination.totalPages, p + 1))
+              }
+              disabled={page === pagination.totalPages}
+              className="btn-secondary py-1.5 px-3 text-sm"
+            >
+              Keyingi →
+            </button>
+          </div>
+        )}
 
-      {showModal && (
-        <ProductModalFull
-          product={editProduct}
-          allTypesForSelect={allTypesForSelect}
-          onClose={() => {
-            setShowModal(false);
-            setEditProduct(undefined);
-          }}
-        />
-      )}
-      {showTypeManager && (
-        <ProductTypeManager onClose={() => setShowTypeManager(false)} />
-      )}
-    </div>
+        {showModal && (
+          <ProductModalFull
+            product={editProduct}
+            allTypesForSelect={allTypesForSelect}
+            onClose={() => {
+              setShowModal(false);
+              setEditProduct(undefined);
+            }}
+          />
+        )}
+        {showTypeManager && (
+          <ProductTypeManager onClose={() => setShowTypeManager(false)} />
+        )}
+      </div>
+    </LockedFeature>
   );
 }

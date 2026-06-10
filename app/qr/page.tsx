@@ -5,6 +5,7 @@ import { tableApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import type { Table } from "@/types";
 import { QrCode, Printer, Download, Loader2 } from "lucide-react";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 // QRCode.js CDN dan yuklanadi
 declare const QRCode: any;
@@ -116,55 +117,57 @@ export default function QRPage() {
   const tables: Table[] = data?.data?.data || [];
 
   return (
-    <>
-      {/* QRCode.js CDN */}
-      <script
-        src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-        async
-      />
+    <LockedFeature featureKey="qr_ordering" featureName="QR-kod buyurtma">
+      <>
+        {/* QRCode.js CDN */}
+        <script
+          src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+          async
+        />
 
-      <div className="space-y-5 animate-fadeIn">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-            <QrCode className="w-5 h-5 text-green-600" />
+        <div className="space-y-5 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+              <QrCode className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h1 className="page-title">QR Kodlar</h1>
+              <p className="text-sm text-gray-500">Har bir stol uchun QR kod</p>
+            </div>
           </div>
-          <div>
-            <h1 className="page-title">QR Kodlar</h1>
-            <p className="text-sm text-gray-500">Har bir stol uchun QR kod</p>
+
+          <div className="card bg-green-50 border-green-200">
+            <p className="text-sm text-green-800 font-semibold mb-1">
+              ℹ️ QR kod qanday ishlaydi?
+            </p>
+            <p className="text-sm text-green-700">
+              Mijoz QR kodni skanerlaydi → menyu ochiladi → ofitsiantni tanlaydi
+              → buyurtma beradi → ofitsiantga darhol xabar keladi.
+            </p>
           </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+            </div>
+          ) : tables.length === 0 ? (
+            <div className="text-center py-16">
+              <QrCode className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Hali stol qo'shilmagan</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {tables.map((table) => (
+                <QRCodeBox
+                  key={table.id}
+                  table={table}
+                  branchId={user?.branch_id || ""}
+                />
+              ))}
+            </div>
+          )}
         </div>
-
-        <div className="card bg-green-50 border-green-200">
-          <p className="text-sm text-green-800 font-semibold mb-1">
-            ℹ️ QR kod qanday ishlaydi?
-          </p>
-          <p className="text-sm text-green-700">
-            Mijoz QR kodni skanerlaydi → menyu ochiladi → ofitsiantni tanlaydi →
-            buyurtma beradi → ofitsiantga darhol xabar keladi.
-          </p>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="w-6 h-6 animate-spin text-green-600" />
-          </div>
-        ) : tables.length === 0 ? (
-          <div className="text-center py-16">
-            <QrCode className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">Hali stol qo'shilmagan</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {tables.map((table) => (
-              <QRCodeBox
-                key={table.id}
-                table={table}
-                branchId={user?.branch_id || ""}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+      </>
+    </LockedFeature>
   );
 }

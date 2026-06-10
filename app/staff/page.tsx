@@ -24,6 +24,7 @@ import {
   Search,
 } from "lucide-react";
 import clsx from "clsx";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 const BASE_ROLES: Role[] = [
   "waiter",
@@ -872,203 +873,213 @@ export default function StaffPage() {
   });
 
   return (
-    <div className="space-y-4 animate-fadeIn">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Xodimlar</h1>
-          <p className="text-sm text-gray-500">{staff.length} ta xodim</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowRoleManager(true)}
-            className="btn-secondary text-sm py-2 px-3"
-          >
-            <ShieldPlus className="w-4 h-4" /> Rollar
-          </button>
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="btn-primary text-sm py-2 px-3"
-          >
-            <Plus className="w-4 h-4" /> Qo'shish
-          </button>
-        </div>
-      </div>
-
-      {/* Qidiruv */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          className="input pl-9"
-          placeholder="Ism, username, telefon yoki rol bo'yicha qidirish..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2"
-          >
-            <X className="w-4 h-4 text-gray-400" />
-          </button>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-6 h-6 animate-spin text-green-600" />
-        </div>
-      ) : staff.length === 0 ? (
-        <div className="text-center py-16">
-          <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Xodim qo'shilmagan</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {staff
-            .filter((s) => {
-              if (!search) return true;
-              const q = search.toLowerCase();
-              return (
-                s.full_name?.toLowerCase().includes(q) ||
-                s.username?.toLowerCase().includes(q) ||
-                s.phone?.includes(q) ||
-                (allRoleLabels[s.role] || s.role).toLowerCase().includes(q)
-              );
-            })
-            .map((s) => {
-              const perms = safeParsePermissions(s.extra_permissions);
-              const isCustomRole = !ROLE_LABELS[s.role as Role];
-              return (
-                <div key={s.id} className="card">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">
-                          {s.full_name}
-                        </p>
-                        <p className="text-xs text-gray-400">@{s.username}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={() => setEditStaff(s)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100 transition-all"
-                      >
-                        <Pencil className="w-3.5 h-3.5 text-gray-600" />
-                      </button>
-                      {s.role !== "manager" && s.id !== user?.user_id && (
-                        <button
-                          onClick={() => {
-                            if (confirm("O'chirishni tasdiqlaysizmi?"))
-                              deleteMutation.mutate(s.id);
-                          }}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-all"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Rollar va ruxsatlar */}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {/* Asosiy rol */}
-                    <span
-                      className={clsx(
-                        "badge text-xs flex items-center gap-1",
-                        isCustomRole
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-green-100 text-green-700",
-                      )}
-                    >
-                      {isCustomRole && <Tag className="w-2.5 h-2.5" />}
-                      {allRoleLabels[s.role] || s.role}
-                    </span>
-                    {/* Extra permissions */}
-                    {perms.map((p) => (
-                      <span
-                        key={p}
-                        className={clsx(
-                          "badge text-xs",
-                          !PRODUCT_TYPE_LABELS[p as ProductType]
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-blue-50 text-blue-600",
-                        )}
-                      >
-                        {allTypeLabels[p] || p}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between mt-1">
-                    {s.phone && (
-                      <p className="text-xs text-gray-400 flex items-center gap-1">
-                        <Phone className="w-3 h-3" /> {s.phone}
-                      </p>
-                    )}
-                    {s.monthly_salary != null && s.monthly_salary > 0 && (
-                      <p className="text-xs font-semibold text-green-700 ml-auto">
-                        {Number(s.monthly_salary).toLocaleString("uz-UZ")}{" "}
-                        so'm/oy
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      )}
-
-      {/* O'chirish tasdiqlash modali */}
-      {deleteId && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm animate-slideUp p-5">
-            <h3 className="font-bold text-gray-900 mb-2">Hodimni o'chirish</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Hodimni o'chirishni tasdiqlaysizmi? Bu amalni qaytarib bo'lmaydi.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="btn-secondary flex-1 justify-center"
-              >
-                Bekor
-              </button>
-              <button
-                onClick={() => {
-                  deleteMutation.mutate(deleteId);
-                  setDeleteId(null);
-                }}
-                disabled={deleteMutation.isPending}
-                className="btn-danger flex-1 justify-center"
-              >
-                {deleteMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-                O'chirish
-              </button>
-            </div>
+    <LockedFeature
+      featureKey="staff_management"
+      featureName="Xodimlar boshqaruvi"
+    >
+      <div className="space-y-4 animate-fadeIn">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Xodimlar</h1>
+            <p className="text-sm text-gray-500">{staff.length} ta xodim</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowRoleManager(true)}
+              className="btn-secondary text-sm py-2 px-3"
+            >
+              <ShieldPlus className="w-4 h-4" /> Rollar
+            </button>
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="btn-primary text-sm py-2 px-3"
+            >
+              <Plus className="w-4 h-4" /> Qo'shish
+            </button>
           </div>
         </div>
-      )}
 
-      {showNewModal && <NewStaffModal onClose={() => setShowNewModal(false)} />}
-      {editStaff && (
-        <StaffDetailModal
-          staff={editStaff}
-          allRoleLabels={allRoleLabels}
-          allTypeLabels={allTypeLabels}
-          onClose={() => setEditStaff(null)}
-        />
-      )}
-      {showRoleManager && (
-        <CustomRoleManager onClose={() => setShowRoleManager(false)} />
-      )}
-    </div>
+        {/* Qidiruv */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            className="input pl-9"
+            placeholder="Ism, username, telefon yoki rol bo'yicha qidirish..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+          </div>
+        ) : staff.length === 0 ? (
+          <div className="text-center py-16">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Xodim qo'shilmagan</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {staff
+              .filter((s) => {
+                if (!search) return true;
+                const q = search.toLowerCase();
+                return (
+                  s.full_name?.toLowerCase().includes(q) ||
+                  s.username?.toLowerCase().includes(q) ||
+                  s.phone?.includes(q) ||
+                  (allRoleLabels[s.role] || s.role).toLowerCase().includes(q)
+                );
+              })
+              .map((s) => {
+                const perms = safeParsePermissions(s.extra_permissions);
+                const isCustomRole = !ROLE_LABELS[s.role as Role];
+                return (
+                  <div key={s.id} className="card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">
+                            {s.full_name}
+                          </p>
+                          <p className="text-xs text-gray-400">@{s.username}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => setEditStaff(s)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100 transition-all"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-gray-600" />
+                        </button>
+                        {s.role !== "manager" && s.id !== user?.user_id && (
+                          <button
+                            onClick={() => {
+                              if (confirm("O'chirishni tasdiqlaysizmi?"))
+                                deleteMutation.mutate(s.id);
+                            }}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Rollar va ruxsatlar */}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {/* Asosiy rol */}
+                      <span
+                        className={clsx(
+                          "badge text-xs flex items-center gap-1",
+                          isCustomRole
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-green-100 text-green-700",
+                        )}
+                      >
+                        {isCustomRole && <Tag className="w-2.5 h-2.5" />}
+                        {allRoleLabels[s.role] || s.role}
+                      </span>
+                      {/* Extra permissions */}
+                      {perms.map((p) => (
+                        <span
+                          key={p}
+                          className={clsx(
+                            "badge text-xs",
+                            !PRODUCT_TYPE_LABELS[p as ProductType]
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-blue-50 text-blue-600",
+                          )}
+                        >
+                          {allTypeLabels[p] || p}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-1">
+                      {s.phone && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> {s.phone}
+                        </p>
+                      )}
+                      {s.monthly_salary != null && s.monthly_salary > 0 && (
+                        <p className="text-xs font-semibold text-green-700 ml-auto">
+                          {Number(s.monthly_salary).toLocaleString("uz-UZ")}{" "}
+                          so'm/oy
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
+        {/* O'chirish tasdiqlash modali */}
+        {deleteId && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm animate-slideUp p-5">
+              <h3 className="font-bold text-gray-900 mb-2">
+                Hodimni o'chirish
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Hodimni o'chirishni tasdiqlaysizmi? Bu amalni qaytarib
+                bo'lmaydi.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  className="btn-secondary flex-1 justify-center"
+                >
+                  Bekor
+                </button>
+                <button
+                  onClick={() => {
+                    deleteMutation.mutate(deleteId);
+                    setDeleteId(null);
+                  }}
+                  disabled={deleteMutation.isPending}
+                  className="btn-danger flex-1 justify-center"
+                >
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  O'chirish
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showNewModal && (
+          <NewStaffModal onClose={() => setShowNewModal(false)} />
+        )}
+        {editStaff && (
+          <StaffDetailModal
+            staff={editStaff}
+            allRoleLabels={allRoleLabels}
+            allTypeLabels={allTypeLabels}
+            onClose={() => setEditStaff(null)}
+          />
+        )}
+        {showRoleManager && (
+          <CustomRoleManager onClose={() => setShowRoleManager(false)} />
+        )}
+      </div>
+    </LockedFeature>
   );
 }

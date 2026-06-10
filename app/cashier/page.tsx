@@ -29,6 +29,7 @@ import {
   ChefHat,
 } from "lucide-react";
 import clsx from "clsx";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 const PAYMENT_TYPES: {
   key: PaymentType;
@@ -493,163 +494,169 @@ export default function CashierPage() {
   };
 
   return (
-    <div className="space-y-5 animate-fadeIn">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-            <CreditCard className="w-5 h-5 text-purple-600" />
+    <LockedFeature featureKey="cashier_panel" featureName="Kassir paneli">
+      <div className="space-y-5 animate-fadeIn">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <h1 className="page-title">Kassa</h1>
+              <p className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
+                {allOrders.length} ta buyurtma
+                {!isOnline && (
+                  <span className="flex items-center gap-1 text-amber-600 font-semibold">
+                    <WifiOff className="w-3.5 h-3.5" /> Offline
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="page-title">Kassa</h1>
-            <p className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
-              {allOrders.length} ta buyurtma
-              {!isOnline && (
-                <span className="flex items-center gap-1 text-amber-600 font-semibold">
-                  <WifiOff className="w-3.5 h-3.5" /> Offline
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowNewOrder(true)}
-          className="btn-primary text-sm py-2"
-        >
-          <Plus className="w-4 h-4" /> Buyurtma
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
-        </div>
-      ) : allOrders.length === 0 ? (
-        <div className="text-center py-16">
-          <CreditCard className="w-14 h-14 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-400 font-semibold">Hozircha buyurtma yo'q</p>
           <button
             onClick={() => setShowNewOrder(true)}
-            className="btn-primary mt-4 text-sm"
+            className="btn-primary text-sm py-2"
           >
-            <Plus className="w-4 h-4" /> Yangi buyurtma
+            <Plus className="w-4 h-4" /> Buyurtma
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {allOrders.map((order) => {
-            const { fee, vat, grand } = calcGrand(order);
-            const typeBadge =
-              ORDER_TYPE_BADGE[order.order_type || "table"] ||
-              ORDER_TYPE_BADGE.table;
-            const statusBadge = STATUS_BADGE[order.status] || {
-              label: order.status,
-              color: "bg-gray-100 text-gray-600",
-            };
-            const canPay =
-              order.status === "payment_pending" ||
-              order.order_type === "takeaway" ||
-              order.order_type === "delivery";
 
-            return (
-              <div
-                key={order.id}
-                className={clsx(
-                  "card border-2 transition-all",
-                  order.status === "ready_to_serve"
-                    ? "border-green-300 bg-green-50/30"
-                    : order.status === "payment_pending"
-                      ? "border-purple-200 hover:border-purple-400 cursor-pointer"
-                      : "border-gray-100",
-                )}
-                onClick={() => (canPay ? setSelectedOrder(order) : null)}
-              >
-                <div className="flex items-start justify-between mb-3 gap-2">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-900">
-                        {order.order_type === "table"
-                          ? `${(order as any).table_number}-stol`
-                          : typeBadge.label}
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+          </div>
+        ) : allOrders.length === 0 ? (
+          <div className="text-center py-16">
+            <CreditCard className="w-14 h-14 text-gray-200 mx-auto mb-3" />
+            <p className="text-gray-400 font-semibold">
+              Hozircha buyurtma yo'q
+            </p>
+            <button
+              onClick={() => setShowNewOrder(true)}
+              className="btn-primary mt-4 text-sm"
+            >
+              <Plus className="w-4 h-4" /> Yangi buyurtma
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {allOrders.map((order) => {
+              const { fee, vat, grand } = calcGrand(order);
+              const typeBadge =
+                ORDER_TYPE_BADGE[order.order_type || "table"] ||
+                ORDER_TYPE_BADGE.table;
+              const statusBadge = STATUS_BADGE[order.status] || {
+                label: order.status,
+                color: "bg-gray-100 text-gray-600",
+              };
+              const canPay =
+                order.status === "payment_pending" ||
+                order.order_type === "takeaway" ||
+                order.order_type === "delivery";
+
+              return (
+                <div
+                  key={order.id}
+                  className={clsx(
+                    "card border-2 transition-all",
+                    order.status === "ready_to_serve"
+                      ? "border-green-300 bg-green-50/30"
+                      : order.status === "payment_pending"
+                        ? "border-purple-200 hover:border-purple-400 cursor-pointer"
+                        : "border-gray-100",
+                  )}
+                  onClick={() => (canPay ? setSelectedOrder(order) : null)}
+                >
+                  <div className="flex items-start justify-between mb-3 gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-bold text-gray-900">
+                          {order.order_type === "table"
+                            ? `${(order as any).table_number}-stol`
+                            : typeBadge.label}
+                        </p>
+                        {order.order_type === "table" && (
+                          <span
+                            className={clsx("badge text-xs", typeBadge.color)}
+                          >
+                            {typeBadge.label}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {formatDate(order.created_at)}
                       </p>
-                      {order.order_type === "table" && (
-                        <span
-                          className={clsx("badge text-xs", typeBadge.color)}
-                        >
-                          {typeBadge.label}
-                        </span>
+                    </div>
+                    <span
+                      className={clsx(
+                        "badge text-xs flex-shrink-0",
+                        statusBadge.color,
                       )}
-                    </div>
-                    <p className="text-xs text-gray-400">
-                      {formatDate(order.created_at)}
-                    </p>
-                  </div>
-                  <span
-                    className={clsx(
-                      "badge text-xs flex-shrink-0",
-                      statusBadge.color,
-                    )}
-                  >
-                    {statusBadge.label}
-                  </span>
-                </div>
-
-                <div className="space-y-1 mb-3">
-                  {order.items.map((item, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span className="text-gray-600">
-                        {item.name} x{item.quantity}
-                      </span>
-                      <span className="text-gray-700">
-                        {formatPrice(item.price * item.quantity)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-1 pt-2 border-t border-gray-100 mb-3">
-                  {fee > 0 && (
-                    <div className="flex justify-between text-sm text-amber-600">
-                      <span>Xizmat haqi ({serviceFeePercent}%)</span>
-                      <span>+ {formatPrice(fee)}</span>
-                    </div>
-                  )}
-                  {vat > 0 && (
-                    <div className="flex justify-between text-sm text-blue-600">
-                      <span>QQS ({vatPercent}%)</span>
-                      <span>+ {formatPrice(vat)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold">
-                    <span className="text-gray-900">JAMI:</span>
-                    <span className="text-green-600 text-lg">
-                      {formatPrice(grand)}
+                    >
+                      {statusBadge.label}
                     </span>
                   </div>
-                </div>
 
-                {canPay ? (
-                  <button className="btn-primary w-full justify-center py-2 text-sm">
-                    <CreditCard className="w-4 h-4" /> Hisobni yopish
-                  </button>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 py-2 text-sm text-yellow-600 bg-yellow-50 rounded-xl">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Oshxonada
-                    tayyorlanmoqda...
+                  <div className="space-y-1 mb-3">
+                    {order.items.map((item, i) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-gray-600">
+                          {item.name} x{item.quantity}
+                        </span>
+                        <span className="text-gray-700">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
 
-      {selectedOrder && (
-        <PaymentModal
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-        />
-      )}
-      {showNewOrder && <NewOrderModal onClose={() => setShowNewOrder(false)} />}
-    </div>
+                  <div className="space-y-1 pt-2 border-t border-gray-100 mb-3">
+                    {fee > 0 && (
+                      <div className="flex justify-between text-sm text-amber-600">
+                        <span>Xizmat haqi ({serviceFeePercent}%)</span>
+                        <span>+ {formatPrice(fee)}</span>
+                      </div>
+                    )}
+                    {vat > 0 && (
+                      <div className="flex justify-between text-sm text-blue-600">
+                        <span>QQS ({vatPercent}%)</span>
+                        <span>+ {formatPrice(vat)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold">
+                      <span className="text-gray-900">JAMI:</span>
+                      <span className="text-green-600 text-lg">
+                        {formatPrice(grand)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {canPay ? (
+                    <button className="btn-primary w-full justify-center py-2 text-sm">
+                      <CreditCard className="w-4 h-4" /> Hisobni yopish
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 py-2 text-sm text-yellow-600 bg-yellow-50 rounded-xl">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Oshxonada
+                      tayyorlanmoqda...
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {selectedOrder && (
+          <PaymentModal
+            order={selectedOrder}
+            onClose={() => setSelectedOrder(null)}
+          />
+        )}
+        {showNewOrder && (
+          <NewOrderModal onClose={() => setShowNewOrder(false)} />
+        )}
+      </div>
+    </LockedFeature>
   );
 }

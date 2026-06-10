@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import Sidebar from "@/components/layout/Sidebar";
+import { TariffStatusBanner } from "@/components/ui/LockedFeature";
 
 export default function ReportsLayout({
   children,

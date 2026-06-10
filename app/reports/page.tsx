@@ -25,6 +25,7 @@ import {
   Soup,
 } from "lucide-react";
 import clsx from "clsx";
+import { LockedFeature } from "@/components/ui/LockedFeature";
 
 // ─── Hisobot turlari ──────────────────────────────────────────
 const REPORT_TYPES = [
@@ -494,192 +495,203 @@ export default function ReportsPage() {
   const currentType = REPORT_TYPES.find((r) => r.id === activeType)!;
 
   return (
-    <div className="space-y-5 animate-fadeIn">
-      {/* Expenses modal */}
-      {showExpensesModal && (
-        <ExpensesModal
-          onClose={() => setShowExpensesModal(false)}
-          onSubmit={(vals) => {
-            setExpensesParams(vals);
-            setShowExpensesModal(false);
-          }}
-        />
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-            <FileText className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="page-title">Hisobotlar</h1>
-            <p className="text-sm text-gray-500">
-              Chop etish yoki yuklab olish
-            </p>
-          </div>
-        </div>
-        {data && (
-          <div className="flex gap-2">
-            <button
-              onClick={handlePrint}
-              className="btn-secondary flex items-center gap-2 text-sm py-2 px-3"
-            >
-              <Printer className="w-4 h-4" /> Chop etish
-            </button>
-            <button
-              onClick={handleDownload}
-              disabled={isGenerating}
-              className="btn-primary flex items-center gap-2 text-sm py-2 px-3 disabled:opacity-60"
-            >
-              {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              {isGenerating ? "Tayyorlanmoqda..." : "PDF saqlash"}
-            </button>
-          </div>
+    <LockedFeature
+      featureKey="advanced_reports"
+      featureName="Kengaytirilgan hisobotlar"
+    >
+      <div className="space-y-5 animate-fadeIn">
+        {/* Expenses modal */}
+        {showExpensesModal && (
+          <ExpensesModal
+            onClose={() => setShowExpensesModal(false)}
+            onSubmit={(vals) => {
+              setExpensesParams(vals);
+              setShowExpensesModal(false);
+            }}
+          />
         )}
-      </div>
 
-      {/* Hisobot turlari */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-        {REPORT_TYPES.map((rt) => (
-          <button
-            key={rt.id}
-            onClick={() => handleTypeSelect(rt.id)}
-            className={clsx(
-              "flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all text-sm font-semibold",
-              activeType === rt.id
-                ? `border-current ${rt.color} ${rt.bg}`
-                : "border-gray-100 bg-white text-gray-600 hover:border-gray-300",
-            )}
-          >
-            <rt.icon
-              className={clsx(
-                "w-4 h-4 flex-shrink-0",
-                activeType === rt.id ? rt.color : "text-gray-400",
-              )}
-            />
-            <span className="leading-tight">{rt.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* expenses-30 ni qayta ochish */}
-      {activeType === "expenses-30" && expensesParams && (
-        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3 text-sm">
-          <BarChart2 className="w-4 h-4 text-rose-500 flex-shrink-0" />
-          <span className="text-rose-700 font-medium">
-            Elektr: {fmt(expensesParams.electricity)} so'm | Suv:{" "}
-            {fmt(expensesParams.water)} so'm | Gaz: {fmt(expensesParams.gas)}{" "}
-            so'm
-          </span>
-          <button
-            onClick={() => setShowExpensesModal(true)}
-            className="ml-auto text-xs text-rose-600 underline"
-          >
-            O'zgartirish
-          </button>
-        </div>
-      )}
-
-      {/* Sana filtri */}
-      {needsDates && (
-        <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-3 flex-wrap">
-          <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <div className="flex items-center gap-2 flex-wrap">
-            <label className="text-sm text-gray-600 font-medium">Dan:</label>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="input py-1.5 text-sm w-auto"
-              max={to}
-            />
-            <label className="text-sm text-gray-600 font-medium">Gacha:</label>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="input py-1.5 text-sm w-auto"
-              min={from}
-              max={today()}
-            />
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="page-title">Hisobotlar</h1>
+              <p className="text-sm text-gray-500">
+                Chop etish yoki yuklab olish
+              </p>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Hisobot mazmuni */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-          <currentType.icon className={clsx("w-5 h-5", currentType.color)} />
-          <h2 className="font-bold text-gray-900">{currentType.label}</h2>
-          {!needsDates &&
-            activeType !== "expenses-30" &&
-            activeType !== "last-30-extended" && (
-              <span className="text-xs text-gray-500 ml-auto">
-                Oxirgi 30 kun
-              </span>
-            )}
-          {needsDates && from && to && (
-            <span className="text-xs text-gray-500 ml-auto">
-              {fmtDate(from)} — {fmtDate(to)}
-            </span>
+          {data && (
+            <div className="flex gap-2">
+              <button
+                onClick={handlePrint}
+                className="btn-secondary flex items-center gap-2 text-sm py-2 px-3"
+              >
+                <Printer className="w-4 h-4" /> Chop etish
+              </button>
+              <button
+                onClick={handleDownload}
+                disabled={isGenerating}
+                className="btn-primary flex items-center gap-2 text-sm py-2 px-3 disabled:opacity-60"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {isGenerating ? "Tayyorlanmoqda..." : "PDF saqlash"}
+              </button>
+            </div>
           )}
         </div>
 
-        {activeType === "expenses-30" && !expensesParams ? (
-          <div className="flex flex-col items-center py-16 gap-3">
-            <BarChart2 className="w-10 h-10 text-rose-300" />
-            <p className="text-gray-500 text-sm">
-              Kommunal xarajatlarni kiritib hisobot oling
-            </p>
+        {/* Hisobot turlari */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {REPORT_TYPES.map((rt) => (
+            <button
+              key={rt.id}
+              onClick={() => handleTypeSelect(rt.id)}
+              className={clsx(
+                "flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all text-sm font-semibold",
+                activeType === rt.id
+                  ? `border-current ${rt.color} ${rt.bg}`
+                  : "border-gray-100 bg-white text-gray-600 hover:border-gray-300",
+              )}
+            >
+              <rt.icon
+                className={clsx(
+                  "w-4 h-4 flex-shrink-0",
+                  activeType === rt.id ? rt.color : "text-gray-400",
+                )}
+              />
+              <span className="leading-tight">{rt.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* expenses-30 ni qayta ochish */}
+        {activeType === "expenses-30" && expensesParams && (
+          <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3 text-sm">
+            <BarChart2 className="w-4 h-4 text-rose-500 flex-shrink-0" />
+            <span className="text-rose-700 font-medium">
+              Elektr: {fmt(expensesParams.electricity)} so'm | Suv:{" "}
+              {fmt(expensesParams.water)} so'm | Gaz: {fmt(expensesParams.gas)}{" "}
+              so'm
+            </span>
             <button
               onClick={() => setShowExpensesModal(true)}
-              className="btn-primary text-sm py-2 px-4"
+              className="ml-auto text-xs text-rose-600 underline"
             >
-              Ma'lumot kiritish
+              O'zgartirish
             </button>
           </div>
-        ) : isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-          </div>
-        ) : fetchError ? (
-          <p className="text-center py-10 text-red-500 text-sm">
-            Ma'lumot yuklanmadi
-          </p>
-        ) : (
-          <div ref={printRef}>
-            {activeType === "revenue" && <RevenueReport data={data} />}
-            {activeType === "top-products" && <TopProductsReport data={data} />}
-            {activeType === "last-30-days" && <Last30DaysReport data={data} />}
-            {activeType === "waiter-salary" && (
-              <WaiterSalaryReport data={data} />
-            )}
-            {activeType === "top-waiters" && <TopWaitersReport data={data} />}
-            {activeType === "order-history" && (
-              <OrderHistoryReport data={data} />
-            )}
-            {activeType === "top-tables" && <TopTablesReport data={data} />}
-            {activeType === "product-history" && (
-              <ProductHistoryReport data={data} />
-            )}
-            {activeType === "expenses-30" && expensesParams && (
-              <Expenses30Report data={data} params={expensesParams} />
-            )}
-            {activeType === "delivery" && <DeliveryReport data={data} />}
-            {activeType === "takeaway" && <TakeawayReport data={data} />}
-            {activeType === "last-30-extended" && (
-              <Last30ExtendedReport data={data} />
-            )}
-            {activeType === "staff-meal" && <StaffMealReport data={data} />}
+        )}
+
+        {/* Sana filtri */}
+        {needsDates && (
+          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-3 flex-wrap">
+            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className="text-sm text-gray-600 font-medium">Dan:</label>
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="input py-1.5 text-sm w-auto"
+                max={to}
+              />
+              <label className="text-sm text-gray-600 font-medium">
+                Gacha:
+              </label>
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="input py-1.5 text-sm w-auto"
+                min={from}
+                max={today()}
+              />
+            </div>
           </div>
         )}
+
+        {/* Hisobot mazmuni */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+            <currentType.icon className={clsx("w-5 h-5", currentType.color)} />
+            <h2 className="font-bold text-gray-900">{currentType.label}</h2>
+            {!needsDates &&
+              activeType !== "expenses-30" &&
+              activeType !== "last-30-extended" && (
+                <span className="text-xs text-gray-500 ml-auto">
+                  Oxirgi 30 kun
+                </span>
+              )}
+            {needsDates && from && to && (
+              <span className="text-xs text-gray-500 ml-auto">
+                {fmtDate(from)} — {fmtDate(to)}
+              </span>
+            )}
+          </div>
+
+          {activeType === "expenses-30" && !expensesParams ? (
+            <div className="flex flex-col items-center py-16 gap-3">
+              <BarChart2 className="w-10 h-10 text-rose-300" />
+              <p className="text-gray-500 text-sm">
+                Kommunal xarajatlarni kiritib hisobot oling
+              </p>
+              <button
+                onClick={() => setShowExpensesModal(true)}
+                className="btn-primary text-sm py-2 px-4"
+              >
+                Ma'lumot kiritish
+              </button>
+            </div>
+          ) : isLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+            </div>
+          ) : fetchError ? (
+            <p className="text-center py-10 text-red-500 text-sm">
+              Ma'lumot yuklanmadi
+            </p>
+          ) : (
+            <div ref={printRef}>
+              {activeType === "revenue" && <RevenueReport data={data} />}
+              {activeType === "top-products" && (
+                <TopProductsReport data={data} />
+              )}
+              {activeType === "last-30-days" && (
+                <Last30DaysReport data={data} />
+              )}
+              {activeType === "waiter-salary" && (
+                <WaiterSalaryReport data={data} />
+              )}
+              {activeType === "top-waiters" && <TopWaitersReport data={data} />}
+              {activeType === "order-history" && (
+                <OrderHistoryReport data={data} />
+              )}
+              {activeType === "top-tables" && <TopTablesReport data={data} />}
+              {activeType === "product-history" && (
+                <ProductHistoryReport data={data} />
+              )}
+              {activeType === "expenses-30" && expensesParams && (
+                <Expenses30Report data={data} params={expensesParams} />
+              )}
+              {activeType === "delivery" && <DeliveryReport data={data} />}
+              {activeType === "takeaway" && <TakeawayReport data={data} />}
+              {activeType === "last-30-extended" && (
+                <Last30ExtendedReport data={data} />
+              )}
+              {activeType === "staff-meal" && <StaffMealReport data={data} />}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </LockedFeature>
   );
 }
 
