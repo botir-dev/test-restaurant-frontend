@@ -6,7 +6,7 @@ import { PUBLIC_PATHS, getHome, canAccess } from "@/lib/auth-constants";
 const verifyToken = async (token: string): Promise<{ role: string } | null> => {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET);
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
     return { role: payload.role as string };
   } catch {
     return null;
